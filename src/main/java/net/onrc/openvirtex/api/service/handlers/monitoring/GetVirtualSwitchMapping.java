@@ -75,8 +75,8 @@ public class GetVirtualSwitchMapping extends ApiHandler<Map<String, Object>> {
                 | SwitchMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to fetch virtual topology : "
-                            + e.getMessage()), 0);
+                    + ": Unable to fetch virtual topology : "
+                    + e.getMessage()), 0);
         }
         return resp;
     }

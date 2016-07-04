@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.network;
 
@@ -22,19 +31,16 @@ import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
 import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.OVXMap;
-import net.onrc.openvirtex.elements.datapath.DPIDandPort;
-import net.onrc.openvirtex.elements.datapath.DPIDandPortPair;
-import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
-import net.onrc.openvirtex.elements.datapath.Switch;
+import net.onrc.openvirtex.elements.datapath.*;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.linkdiscovery.SwitchDiscoveryManager;
 
+import net.onrc.openvirtex.messages.OVXMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.util.HashedWheelTimer;
-import org.openflow.protocol.OFMessage;
-import org.openflow.protocol.OFPort;
+import org.projectfloodlight.openflow.types.OFPort;
 
 /**
  *
@@ -110,8 +116,7 @@ public final class PhysicalNetwork extends
     @Override
     public boolean removeSwitch(final PhysicalSwitch sw) {
         DBManager.getInstance().delSwitch(sw.getSwitchId());
-        SwitchDiscoveryManager sdm = this.discoveryManager
-                .get(sw.getSwitchId());
+        SwitchDiscoveryManager sdm = this.discoveryManager.get(sw.getSwitchId());
         for (PhysicalPort port : sw.getPorts().values()) {
             removePort(sdm, port);
         }
@@ -131,7 +136,7 @@ public final class PhysicalNetwork extends
                 .getParentSwitch().getSwitchId());
         if (sdm != null) {
             // Do not run discovery on local OpenFlow port
-            if (port.getPortNumber() != OFPort.OFPP_LOCAL.getValue()) {
+            if (port.getPortNumber() != OFPort.LOCAL.getShortPortNumber()) {
                 sdm.addPort(port);
             }
         }
@@ -145,14 +150,14 @@ public final class PhysicalNetwork extends
      * @param port the port
      */
     public synchronized void removePort(SwitchDiscoveryManager sdm,
-            final PhysicalPort port) {
+                                        final PhysicalPort port) {
         DBManager.getInstance().delPort(port.toDPIDandPort());
         port.unregister();
         /* remove from topology discovery */
         if (sdm != null) {
             log.info("removing port {}", port.getPortNumber());
             // Do not run discovery on local OpenFlow port
-            if (port.getPortNumber() != OFPort.OFPP_LOCAL.getValue()) {
+            if (port.getPortNumber() != OFPort.LOCAL.getShortPortNumber()) {
                 sdm.removePort(port);
             }
         }
@@ -170,7 +175,7 @@ public final class PhysicalNetwork extends
      * @param dstPort destination port
      */
     public synchronized void createLink(final PhysicalPort srcPort,
-            final PhysicalPort dstPort) {
+                                        final PhysicalPort dstPort) {
         final PhysicalPort neighbourPort = this.getNeighborPort(srcPort);
         if (neighbourPort == null || !neighbourPort.equals(dstPort)) {
             final PhysicalLink link = new PhysicalLink(srcPort, dstPort);
@@ -195,7 +200,7 @@ public final class PhysicalNetwork extends
      * @param dstPort destination port
      */
     public synchronized void removeLink(final PhysicalPort srcPort,
-            final PhysicalPort dstPort) {
+                                        final PhysicalPort dstPort) {
         PhysicalPort neighbourPort = this.getNeighborPort(srcPort);
         if ((neighbourPort != null) && (neighbourPort.equals(dstPort))) {
             final PhysicalLink link = super.getLink(srcPort, dstPort);
@@ -230,11 +235,11 @@ public final class PhysicalNetwork extends
      * SwitchDisoveryManager (which sent the original LLDP packet).
      *
      * @param msg the LLDP packet in
-     * @param the switch
+     * @param sw the switch
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void handleLLDP(final OFMessage msg, final Switch sw) {
+    public void handleLLDP(final OVXMessage msg, final Switch sw) {
         // Pass msg to appropriate SwitchDiscoveryManager
         final SwitchDiscoveryManager sdm = this.discoveryManager.get(sw
                 .getSwitchId());
@@ -244,7 +249,7 @@ public final class PhysicalNetwork extends
     }
 
     @Override
-    public void sendMsg(final OFMessage msg, final OVXSendMsg from) {
+    public void sendMsg(final OVXMessage msg, final OVXSendMsg from) {
         // Do nothing
     }
 

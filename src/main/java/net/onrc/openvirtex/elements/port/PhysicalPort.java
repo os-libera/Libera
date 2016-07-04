@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.port;
 
@@ -26,14 +35,17 @@ import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.messages.OVXPortStatus;
-import org.openflow.protocol.OFPhysicalPort;
-import org.openflow.protocol.OFPortStatus.OFPortReason;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.projectfloodlight.openflow.protocol.OFPortDesc;
 
 /**
  * A physical port maintains the mapping of all virtual ports that are mapped to
  * it.
  */
 public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
+
+    Logger log = LogManager.getLogger(PhysicalPort.class.getName());
 
 
     private final Map<Integer, HashMap<Integer, OVXPort>> ovxPortMap;
@@ -44,7 +56,7 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
      * @param port
      *            the OpenFlow physical port
      */
-    private PhysicalPort(final OFPhysicalPort port) {
+    private PhysicalPort(final OFPortDesc port) {
         super(port);
         this.ovxPortMap = new HashMap<Integer, HashMap<Integer, OVXPort>>();
     }
@@ -61,9 +73,10 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
      * @param isEdge
      *            edge attribute
      */
-    public PhysicalPort(final OFPhysicalPort port, final PhysicalSwitch sw,
-            final boolean isEdge) {
+    public PhysicalPort(final OFPortDesc port, final PhysicalSwitch sw,
+                        final boolean isEdge) {
         this(port);
+
         this.parentSwitch = sw;
         this.isEdge = isEdge;
     }
@@ -166,7 +179,7 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
         PhysicalPort port = (PhysicalPort) that;
         return this.portNumber == port.portNumber
                 && this.parentSwitch.getSwitchId() == port.getParentSwitch()
-                        .getSwitchId();
+                .getSwitchId();
     }
 
     /**
@@ -195,7 +208,7 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
      *            the port status
      */
     public void applyPortStatus(OVXPortStatus portstat) {
-        if (!portstat.isReason(OFPortReason.OFPPR_MODIFY)) {
+        /*if (!portstat.isReason(OFPortReason.OFPPR_MODIFY)) {
             return;
         }
         OFPhysicalPort psport = portstat.getDesc();
@@ -207,7 +220,7 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
         this.currentFeatures = psport.getCurrentFeatures();
         this.advertisedFeatures = psport.getAdvertisedFeatures();
         this.supportedFeatures = psport.getSupportedFeatures();
-        this.peerFeatures = psport.getPeerFeatures();
+        this.peerFeatures = psport.getPeerFeatures();*/
     }
 
     /**

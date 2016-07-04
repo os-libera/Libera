@@ -65,7 +65,7 @@ public class GetVirtualHosts extends ApiHandler<Map<String, Object>> {
         } catch (NetworkMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Invalid tenantId : " + tid), 0);
+                    + ": Invalid tenantId : " + tid), 0);
         }
         return resp;
     }

@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
 
@@ -20,6 +29,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.handler.execution.ExecutionHandler;
@@ -27,6 +38,8 @@ import org.jboss.netty.handler.timeout.IdleStateHandler;
 import org.jboss.netty.handler.timeout.ReadTimeoutHandler;
 
 public class SwitchChannelPipeline extends OpenflowChannelPipeline {
+
+    Logger log = LogManager.getLogger(SwitchChannelPipeline.class.getName());
 
     private ExecutionHandler eh = null;
 
@@ -40,6 +53,8 @@ public class SwitchChannelPipeline extends OpenflowChannelPipeline {
         this.idleHandler = new IdleStateHandler(this.timer, 20, 25, 0);
         this.readTimeoutHandler = new ReadTimeoutHandler(this.timer, 30);
         this.eh = new ExecutionHandler(this.pipelineExecutor);
+
+        //this.log.info("SwitchChannelPipeline created");
     }
 
     @Override
@@ -51,6 +66,7 @@ public class SwitchChannelPipeline extends OpenflowChannelPipeline {
         pipeline.addLast("ofmessageencoder", new OVXMessageEncoder());
         pipeline.addLast("idle", this.idleHandler);
         pipeline.addLast("timeout", this.readTimeoutHandler);
+
         pipeline.addLast("handshaketimeout", new HandshakeTimeoutHandler(
                 handler, this.timer, 15));
 

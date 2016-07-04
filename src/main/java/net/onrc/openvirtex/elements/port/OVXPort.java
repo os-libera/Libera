@@ -12,36 +12,42 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.port;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
 import net.onrc.openvirtex.db.DBManager;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFPortStatus;
-import org.openflow.protocol.OFPhysicalPort;
-import org.openflow.protocol.OFPortStatus.OFPortReason;
-
-import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.host.Host;
-import net.onrc.openvirtex.elements.network.OVXNetwork;
 import net.onrc.openvirtex.elements.link.OVXLink;
+import net.onrc.openvirtex.messages.OVXPortStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
+import net.onrc.openvirtex.elements.OVXMap;
+import net.onrc.openvirtex.elements.network.OVXNetwork;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.routing.SwitchRoute;
-import net.onrc.openvirtex.util.MACAddress;
-import net.onrc.openvirtex.messages.OVXPortStatus;
 import net.onrc.openvirtex.elements.Persistable;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.OFPort;
 
 public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
 
@@ -51,15 +57,20 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
     private final PhysicalPort physicalPort;
     private boolean isActive;
 
+    OFFactory factory;
+
     public OVXPort(final int tenantId, final PhysicalPort port,
-            final boolean isEdge, final short portNumber)
-                    throws IndexOutOfBoundException {
-        super(port);
+                   final boolean isEdge, final short portNumber)
+            throws IndexOutOfBoundException {
+        super(port.ofPort);
+
         this.tenantId = tenantId;
         this.physicalPort = port;
         try {
             this.parentSwitch = OVXMap.getInstance().getVirtualSwitch(
                     port.getParentSwitch(), tenantId);
+
+            factory = OFFactories.getFactory(this.parentSwitch.getOfVersion());
         } catch (SwitchMappingException e) {
             // something pretty wrong if we get here. Not 100% on how to handle
             // this
@@ -67,29 +78,103 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
                     + e.getMessage());
         }
         this.portNumber = portNumber;
-        this.name = "ovxport-" + this.portNumber;
+        this.name = "vport-" + this.portNumber;
         this.isEdge = isEdge;
-        this.hardwareAddress = port.getHardwareAddress();
-        PortFeatures features = new PortFeatures();
-        features.setCurrentOVXPortFeatures();
-        this.currentFeatures = features.getOVXFeatures();
-        features.setAdvertisedOVXPortFeatures();
-        this.advertisedFeatures = features.getOVXFeatures();
-        features.setSupportedOVXPortFeatures();
-        this.supportedFeatures = features.getOVXFeatures();
-        features.setPeerOVXPortFeatures();
-        this.peerFeatures = features.getOVXFeatures();
-        this.state = OFPortState.OFPPS_LINK_DOWN.getValue();
-        this.config = OFPortConfig.OFPPC_NO_STP.getValue();
+        this.hardwareAddress = port.ofPort.getHwAddr().getBytes();
+
+        setCurrentFeatures();
+        setAdvertisedFeatures();
+        setSupportedFeatures();
+        setPeerFeatures();
+
+        setState();
+        setConfig();
+
         this.isActive = false;
 
+        this.ofPort = this.ofPort.createBuilder()
+                .setPortNo(OFPort.of(this.portNumber))
+                .setName(this.name)
+                .setConfig(this.config)
+                .setState(this.state)
+                .setHwAddr(MacAddress.of(this.hardwareAddress))
+                .setAdvertised(this.advertisedFeatures)
+                .setCurr(this.currentFeatures)
+                .setSupported(this.supportedFeatures)
+                .setPeer(this.peerFeatures)
+                .build();
+    }
+
+    public void setConfig() {
+        this.config.clear();
+
+        if(this.parentSwitch.getOfVersion() == OFVersion.OF_10) {
+            this.config.add(OFPortConfig.NO_STP);
+        }
+    }
+
+    public void setState() {
+        this.state.clear();;
+        this.state.add(OFPortState.LINK_DOWN);
+    }
+
+    public void setCurrentFeatures() {
+        this.currentFeatures.clear();
+
+        this.currentFeatures.add(OFPortFeatures.PF_1GB_FD);
+        this.currentFeatures.add(OFPortFeatures.PF_COPPER);
+    }
+
+    public void setAdvertisedFeatures() {
+        this.advertisedFeatures.clear();
+
+        this.advertisedFeatures.add(OFPortFeatures.PF_10MB_FD);
+        this.advertisedFeatures.add(OFPortFeatures.PF_100MB_FD);
+        this.advertisedFeatures.add(OFPortFeatures.PF_1GB_FD);
+        this.advertisedFeatures.add(OFPortFeatures.PF_COPPER);
+    }
+
+    public void setSupportedFeatures() {
+        this.supportedFeatures.clear();
+
+        this.supportedFeatures.add(OFPortFeatures.PF_10MB_HD);
+        this.supportedFeatures.add(OFPortFeatures.PF_10MB_FD);
+        this.supportedFeatures.add(OFPortFeatures.PF_100MB_HD);
+        this.supportedFeatures.add(OFPortFeatures.PF_100MB_FD);
+        this.supportedFeatures.add(OFPortFeatures.PF_1GB_HD);
+        this.supportedFeatures.add(OFPortFeatures.PF_1GB_FD);
+        this.supportedFeatures.add(OFPortFeatures.PF_COPPER);
+    }
+
+    public void setPeerFeatures() {
+        this.peerFeatures.clear();
+
+        this.peerFeatures.add(OFPortFeatures.PF_10MB_HD);
+        this.peerFeatures.add(OFPortFeatures.PF_10MB_FD);
+        this.peerFeatures.add(OFPortFeatures.PF_100MB_HD);
+        this.peerFeatures.add(OFPortFeatures.PF_100MB_FD);
+        this.peerFeatures.add(OFPortFeatures.PF_1GB_HD);
+        this.peerFeatures.add(OFPortFeatures.PF_1GB_FD);
+        this.peerFeatures.add(OFPortFeatures.PF_10GB_FD);
+        this.peerFeatures.add(OFPortFeatures.PF_COPPER);
+        this.peerFeatures.add(OFPortFeatures.PF_FIBER);
+        this.peerFeatures.add(OFPortFeatures.PF_PAUSE);
+        this.peerFeatures.add(OFPortFeatures.PF_PAUSE_ASYM);
     }
 
     public OVXPort(final int tenantId, final PhysicalPort port,
-            final boolean isEdge) throws IndexOutOfBoundException {
+                   final boolean isEdge) throws IndexOutOfBoundException {
         this(tenantId, port, isEdge, (short) 0);
         this.portNumber = this.parentSwitch.getNextPortNumber();
-        this.name = "ovxport-" + this.portNumber;
+        this.name = "vport-" + this.portNumber;
+
+        this.ofPort = this.ofPort.createBuilder()
+                .setPortNo(OFPort.of(this.portNumber))
+                .setName(this.name)
+                .build();
+
+        //this.log.info("OVXPort2 is created");
+        //this.log.info(this.ofPort.toString());
     }
 
     public Integer getTenantId() {
@@ -113,9 +198,28 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
     }
 
     public void sendStatusMsg(OFPortReason reason) {
-        OFPortStatus status = new OFPortStatus();
-        status.setDesc(this);
-        status.setReason(reason.getReasonCode());
+
+
+
+/*      생성자 OVXPort2()에서 다시 만들어짐
+        this.ofPort = this.ofPort.createBuilder()
+                        .setPortNo(OFPort.of(this.portNumber))
+                        .setName(this.name)
+                        .setCurr(this.currentFeatures)
+                        .setAdvertised(this.advertisedFeatures)
+                        .setSupported(this.supportedFeatures)
+                        .setPeer(this.peerFeatures)
+                        .setConfig(this.config)
+                        .setState(this.state)
+                        .build();*/
+
+        OFPortStatus temp = factory.buildPortStatus()
+                .setDesc(this.ofPort)
+                .setReason(reason)
+                .build();
+
+        OVXPortStatus status = new OVXPortStatus(temp);
+
         this.parentSwitch.sendMsg(status, this.parentSwitch);
     }
 
@@ -126,7 +230,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
         this.parentSwitch.addPort(this);
         this.physicalPort.setOVXPort(this);
         if (this.parentSwitch.isActive()) {
-            sendStatusMsg(OFPortReason.OFPPR_ADD);
+            sendStatusMsg(OFPortReason.ADD);
             this.parentSwitch.generateFeaturesReply();
         }
         DBManager.getInstance().save(this);
@@ -138,14 +242,21 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
      *
      * @param portstat the virtual port status
      */
+
+
     public void virtualizePortStat(OVXPortStatus portstat) {
-        OFPhysicalPort desc = portstat.getDesc();
-        desc.setPortNumber(this.portNumber);
-        desc.setHardwareAddress(this.hardwareAddress);
-        desc.setCurrentFeatures(this.currentFeatures);
-        desc.setAdvertisedFeatures(this.advertisedFeatures);
-        desc.setSupportedFeatures(this.supportedFeatures);
-        portstat.setDesc(desc);
+
+        OFPortDesc thisPortDesc = this.factory.buildPortDesc()
+                .setPortNo(OFPort.ofShort(this.portNumber))
+                .setHwAddr(MacAddress.of(this.hardwareAddress))
+                .setCurr(this.currentFeatures)
+                .setAdvertised(this.advertisedFeatures)
+                .setSupported(this.supportedFeatures)
+                .build();
+
+        portstat.setOFMessage(portstat.getPortStatus().createBuilder()
+                                        .setDesc(thisPortDesc)
+                                        .build());
     }
 
     /**
@@ -153,14 +264,15 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
      *
      * @param portstat the virtual port status
      */
+
     public void applyPortStatus(OVXPortStatus portstat) {
-        if (portstat.getReason() != OFPortReason.OFPPR_MODIFY.getReasonCode()) {
+        if (portstat.getPortStatus().getReason() != OFPortReason.MODIFY) {
             return;
         }
-        OFPhysicalPort psport = portstat.getDesc();
+        OFPortDesc psport = portstat.getPortStatus().getDesc();
         this.config = psport.getConfig();
         this.state = psport.getState();
-        this.peerFeatures = psport.getPeerFeatures();
+        this.peerFeatures = psport.getPeer();
     }
 
     public void boot() {
@@ -168,10 +280,16 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
             return;
         }
         this.isActive = true;
-        this.state = OFPortState.OFPPS_STP_FORWARD.getValue();
+
+        this.state.clear();
+        if(this.factory.getVersion() == OFVersion.OF_10)
+            this.state.add(OFPortState.STP_FORWARD);
+        else
+            this.state.add(OFPortState.LIVE);
+
         this.parentSwitch.generateFeaturesReply();
         if (this.parentSwitch.isActive()) {
-            sendStatusMsg(OFPortReason.OFPPR_MODIFY);
+            sendStatusMsg(OFPortReason.MODIFY);
         }
         if (this.isLink()) {
             this.getLink().getOutLink().getDstPort().boot();
@@ -183,10 +301,13 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
             return;
         }
         this.isActive = false;
-        this.state = OFPortState.OFPPS_LINK_DOWN.getValue();
+
+        this.state.clear();
+        this.state.add(OFPortState.LINK_DOWN);
+
         this.parentSwitch.generateFeaturesReply();
         if (this.parentSwitch.isActive()) {
-            sendStatusMsg(OFPortReason.OFPPR_MODIFY);
+            sendStatusMsg(OFPortReason.MODIFY);
         }
         if (this.isLink()) {
             this.getLink().getOutLink().getDstPort().tearDown();
@@ -199,8 +320,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
         DBManager.getInstance().remove(this);
         OVXNetwork virtualNetwork = null;
         try {
-            virtualNetwork = this.parentSwitch.getMap().getVirtualNetwork(
-                    this.tenantId);
+            virtualNetwork = this.parentSwitch.getMap().getVirtualNetwork(this.tenantId);
         } catch (NetworkMappingException e) {
             log.error(
                     "Error retrieving the network with id {}. Unregister for OVXPort {}/{} not fully done!",
@@ -209,7 +329,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
             return;
         }
         if (this.parentSwitch.isActive()) {
-            sendStatusMsg(OFPortReason.OFPPR_DELETE);
+            sendStatusMsg(OFPortReason.DELETE);
         }
         if (this.isEdge && this.isActive) {
             Host host = virtualNetwork.getHost(this);
@@ -250,7 +370,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
 
     private void cleanUpFlowMods() {
         log.info("Cleaning up flowmods for sw {} port {}", this
-                .getPhysicalPort().getParentSwitch().getSwitchName(),
+                        .getPhysicalPort().getParentSwitch().getSwitchName(),
                 this.getPhysicalPortNumber());
         this.getPhysicalPort().parentSwitch.cleanUpTenant(this.tenantId,
                 this.getPhysicalPortNumber());
@@ -299,7 +419,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
      * @param stat
      *            PortStatus triggering port deletion
      * @throws NetworkMappingException
-     * @throws LinkMappingException
+     * @throws
      */
     public void handlePortDelete(OVXPortStatus stat)
             throws NetworkMappingException {
@@ -342,7 +462,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
                 this.portLink.exists()) {
             OVXPort dst = this.portLink.egressLink.getDstPort();
             /* unmap vLinks and this port if DELETE */
-            if (stat.isReason(OFPortReason.OFPPR_DELETE)) {
+            if (stat.getPortStatus().getReason().equals(OFPortReason.DELETE)) {
                 this.portLink.egressLink.unregister();
                 this.portLink.ingressLink.unregister();
             }
@@ -363,7 +483,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
      */
     public void handleRouteDisable(OVXPortStatus stat) {
         if ((this.parentSwitch instanceof OVXBigSwitch)
-                && (stat.isReason(OFPortReason.OFPPR_DELETE))) {
+                && (stat.getPortStatus().getReason().equals(OFPortReason.DELETE))) {
             Map<OVXPort, SwitchRoute> routes = ((OVXBigSwitch) this.parentSwitch)
                     .getRouteMap().get(this);
             if (routes != null) {
@@ -451,18 +571,18 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
             linkId = this.getLink().getOutLink().getLinkId();
         }
         return "PORT:\n- portNumber: " + this.portNumber + "\n- parentSwitch: "
-        + this.getParentSwitch().getSwitchName()
-        + "\n- virtualNetwork: " + this.getTenantId()
-        + "\n- hardwareAddress: "
-        + MACAddress.valueOf(this.hardwareAddress).toString()
-        + "\n- config: " + this.config + "\n- state: " + this.state
-        + "\n- currentFeatures: " + this.currentFeatures
-        + "\n- advertisedFeatures: " + this.advertisedFeatures
-        + "\n- supportedFeatures: " + this.supportedFeatures
-        + "\n- peerFeatures: " + this.peerFeatures + "\n- isEdge: "
-        + this.isEdge + "\n- isActive: " + this.isActive
-        + "\n- linkId: " + linkId + "\n- physicalPortNumber: "
-        + this.getPhysicalPortNumber() + "\n- physicalSwitchName: "
-        + this.getPhysicalPort().getParentSwitch().getSwitchName();
+                + this.getParentSwitch().getSwitchName()
+                + "\n- virtualNetwork: " + this.getTenantId()
+                + "\n- hardwareAddress: "
+                + MacAddress.of(this.hardwareAddress).toString()
+                + "\n- config: " + this.config + "\n- state: " + this.state
+                + "\n- currentFeatures: " + this.currentFeatures
+                + "\n- advertisedFeatures: " + this.advertisedFeatures
+                + "\n- supportedFeatures: " + this.supportedFeatures
+                + "\n- peerFeatures: " + this.peerFeatures + "\n- isEdge: "
+                + this.isEdge + "\n- isActive: " + this.isActive
+                + "\n- linkId: " + linkId + "\n- physicalPortNumber: "
+                + this.getPhysicalPortNumber() + "\n- physicalSwitchName: "
+                + this.getPhysicalPort().getParentSwitch().getSwitchName();
     }
 }

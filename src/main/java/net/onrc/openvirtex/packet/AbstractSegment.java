@@ -98,8 +98,6 @@ public abstract class AbstractSegment extends BasePacket {
      *
      * @param bb
      *            The ByteBuffer for the data being serialized
-     * @param l4type
-     *            The protocol type
      * @param length
      *            length of segment
      */

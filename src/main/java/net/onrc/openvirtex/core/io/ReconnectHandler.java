@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
 
@@ -52,8 +61,8 @@ public class ReconnectHandler extends SimpleChannelHandler {
     private final ChannelGroup cg;
 
     public ReconnectHandler(final OVXSwitch sw,
-            final ClientBootstrap bootstrap, final Timer timer,
-            final int maxBackOff, final ChannelGroup cg) {
+                            final ClientBootstrap bootstrap, final Timer timer,
+                            final int maxBackOff, final ChannelGroup cg) {
         super();
         this.sw = sw;
         this.bootstrap = bootstrap;
@@ -65,7 +74,7 @@ public class ReconnectHandler extends SimpleChannelHandler {
 
     @Override
     public void channelClosed(final ChannelHandlerContext ctx,
-            final ChannelStateEvent e) {
+                              final ChannelStateEvent e) {
         if (!this.sw.isActive()) {
             return;
         }
@@ -84,20 +93,20 @@ public class ReconnectHandler extends SimpleChannelHandler {
 
     @Override
     public void channelDisconnected(final ChannelHandlerContext ctx,
-            final ChannelStateEvent e) {
+                                    final ChannelStateEvent e) {
         ctx.sendUpstream(e);
     }
 
     @Override
     public void channelConnected(final ChannelHandlerContext ctx,
-            final ChannelStateEvent e) {
+                                 final ChannelStateEvent e) {
         this.sw.resetBackOff();
         ctx.sendUpstream(e);
     }
 
     @Override
     public void exceptionCaught(final ChannelHandlerContext ctx,
-            final ExceptionEvent e) {
+                                final ExceptionEvent e) {
 
         final Throwable cause = e.getCause();
         if (cause instanceof ConnectException) {

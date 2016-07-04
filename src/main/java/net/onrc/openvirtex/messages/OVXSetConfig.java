@@ -12,36 +12,44 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFSetConfig;
+import org.projectfloodlight.openflow.protocol.OFMessage;
+import org.projectfloodlight.openflow.protocol.OFSetConfig;
 
-public class OVXSetConfig extends OFSetConfig implements Devirtualizable {
+public class OVXSetConfig extends OVXMessage implements Devirtualizable {
+    private final Logger log = LogManager.getLogger(OVXSetConfig.class.getName());
 
-    private final Logger log = LogManager.getLogger(OVXSetConfig.class
-            .getName());
-
-    /**
-     * miss_send_len for a full packet (-1).
-     */
     public static final short MSL_FULL = (short) 0xffff;
-    /**
-     * Default miss_send_len when unspecified.
-     */
     public static final short MSL_DEFAULT = (short) 0x0080;
+
+    public OVXSetConfig(OFMessage msg) {
+        super(msg);
+    }
+
+    public OFSetConfig getSetConfig(){
+        return (OFSetConfig)this.getOFMessage();
+    }
 
     @Override
     public void devirtualize(final OVXSwitch sw) {
+        //this.log.info("devirtualize");
 
-        sw.setMissSendLen(this.missSendLength);
+        sw.setMissSendLen((short)this.getSetConfig().getMissSendLen());
         this.log.info("Setting miss send length to {} for OVXSwitch {}",
-                this.missSendLength, sw.getSwitchName());
-
+                (short)this.getSetConfig().getMissSendLen(), sw.getSwitchName());
     }
-
 }

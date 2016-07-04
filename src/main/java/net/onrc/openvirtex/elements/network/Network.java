@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.network;
 
@@ -30,10 +39,11 @@ import net.onrc.openvirtex.elements.port.Port;
 import net.onrc.openvirtex.exceptions.InvalidDPIDException;
 import net.onrc.openvirtex.linkdiscovery.LLDPEventHandler;
 
-import org.openflow.util.HexString;
-
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.projectfloodlight.openflow.util.HexString;
 
 /**
  *
@@ -47,6 +57,8 @@ import com.google.gson.annotations.SerializedName;
 @SuppressWarnings("rawtypes")
 public abstract class Network<T1 extends Switch, T2 extends Port, T3 extends Link>
         implements LLDPEventHandler, OVXSendMsg {
+
+    private static Logger log = LogManager.getLogger(Network.class.getName());
 
     @SerializedName("switches")
     @Expose

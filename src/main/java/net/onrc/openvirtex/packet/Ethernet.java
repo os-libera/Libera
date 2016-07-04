@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 /**
  * Copyright 2011, Big Switch Networks, Inc.
@@ -37,15 +46,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.onrc.openvirtex.util.MACAddress;
-
-import org.openflow.util.HexString;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.util.HexString;
 
 /**
  *
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
 public class Ethernet extends BasePacket {
+    public static final int MAC_ADDRESS_LENGTH = 6;
     private static final String HEXES = "0123456789ABCDEF";
     public static final short TYPE_ARP = 0x0806;
     public static final short TYPE_RARP = (short) 0x8035;
@@ -64,8 +73,8 @@ public class Ethernet extends BasePacket {
         Ethernet.etherTypeClassMap.put(Ethernet.TYPE_LLDP, LLDP.class);
     }
 
-    protected MACAddress destinationMACAddress;
-    protected MACAddress sourceMACAddress;
+    protected MacAddress destinationMACAddress;
+    protected MacAddress sourceMACAddress;
     protected byte priorityCode;
     protected short vlanID;
     protected short etherType;
@@ -85,7 +94,7 @@ public class Ethernet extends BasePacket {
      * @return the destination MAC as a byte array
      */
     public byte[] getDestinationMACAddress() {
-        return this.destinationMACAddress.toBytes();
+        return this.destinationMACAddress.getBytes();
     }
 
     /**
@@ -93,7 +102,7 @@ public class Ethernet extends BasePacket {
      *
      * @return the destination MAC
      */
-    public MACAddress getDestinationMAC() {
+    public MacAddress getDestinationMAC() {
         return this.destinationMACAddress;
     }
 
@@ -104,7 +113,7 @@ public class Ethernet extends BasePacket {
      * @return the Ethernet frame
      */
     public Ethernet setDestinationMACAddress(final byte[] destinationMACAddress) {
-        this.destinationMACAddress = MACAddress.valueOf(destinationMACAddress);
+        this.destinationMACAddress = MacAddress.of(destinationMACAddress);
         return this;
     }
 
@@ -115,7 +124,7 @@ public class Ethernet extends BasePacket {
      * @return the Ethernet frame
      */
     public Ethernet setDestinationMACAddress(final String destinationMACAddress) {
-        this.destinationMACAddress = MACAddress.valueOf(destinationMACAddress);
+        this.destinationMACAddress = MacAddress.of(destinationMACAddress);
         return this;
     }
 
@@ -125,7 +134,7 @@ public class Ethernet extends BasePacket {
      * @return the source MACAddress as a byte array
      */
     public byte[] getSourceMACAddress() {
-        return this.sourceMACAddress.toBytes();
+        return this.sourceMACAddress.getBytes();
     }
 
     /**
@@ -133,7 +142,7 @@ public class Ethernet extends BasePacket {
      *
      * @return the source MACAddress
      */
-    public MACAddress getSourceMAC() {
+    public MacAddress getSourceMAC() {
         return this.sourceMACAddress;
     }
 
@@ -144,7 +153,7 @@ public class Ethernet extends BasePacket {
      * @return the Ethernet frame
      */
     public Ethernet setSourceMACAddress(final byte[] sourceMACAddress) {
-        this.sourceMACAddress = MACAddress.valueOf(sourceMACAddress);
+        this.sourceMACAddress = MacAddress.of(sourceMACAddress);
         return this;
     }
 
@@ -155,7 +164,7 @@ public class Ethernet extends BasePacket {
      * @return the Ethernet frame
      */
     public Ethernet setSourceMACAddress(final String sourceMACAddress) {
-        this.sourceMACAddress = MACAddress.valueOf(sourceMACAddress);
+        this.sourceMACAddress = MacAddress.of(sourceMACAddress);
         return this;
     }
 
@@ -223,7 +232,7 @@ public class Ethernet extends BasePacket {
      * @return True if the Ethernet frame is broadcast, false otherwise
      */
     public boolean isBroadcast() {
-        assert this.destinationMACAddress.length() == 6;
+        assert this.destinationMACAddress.getLength() == 6;
         return this.destinationMACAddress.isBroadcast();
     }
 
@@ -268,8 +277,8 @@ public class Ethernet extends BasePacket {
         }
         final byte[] data = new byte[length];
         final ByteBuffer bb = ByteBuffer.wrap(data);
-        bb.put(this.destinationMACAddress.toBytes());
-        bb.put(this.sourceMACAddress.toBytes());
+        bb.put(this.destinationMACAddress.getBytes());
+        bb.put(this.sourceMACAddress.getBytes());
         if (this.vlanID != Ethernet.VLAN_UNTAGGED) {
             bb.putShort((short) 0x8100);
             bb.putShort((short) (this.priorityCode << 13 | this.vlanID & 0x0fff));
@@ -286,24 +295,24 @@ public class Ethernet extends BasePacket {
 
     @Override
     public IPacket deserialize(final byte[] data, final int offset,
-            final int length) {
+                               final int length) {
         if (length <= 0) {
             return null;
         }
         final ByteBuffer bb = ByteBuffer.wrap(data, offset, length);
         if (this.destinationMACAddress == null) {
-            this.destinationMACAddress = MACAddress.valueOf(new byte[6]);
+            this.destinationMACAddress = MacAddress.of(new byte[6]);
         }
-        final byte[] dstAddr = new byte[MACAddress.MAC_ADDRESS_LENGTH];
+        final byte[] dstAddr = new byte[MAC_ADDRESS_LENGTH];
         bb.get(dstAddr);
-        this.destinationMACAddress = MACAddress.valueOf(dstAddr);
+        this.destinationMACAddress = MacAddress.of(dstAddr);
 
         if (this.sourceMACAddress == null) {
-            this.sourceMACAddress = MACAddress.valueOf(new byte[6]);
+            this.sourceMACAddress = MacAddress.of(new byte[6]);
         }
-        final byte[] srcAddr = new byte[MACAddress.MAC_ADDRESS_LENGTH];
+        final byte[] srcAddr = new byte[MAC_ADDRESS_LENGTH];
         bb.get(srcAddr);
-        this.sourceMACAddress = MACAddress.valueOf(srcAddr);
+        this.sourceMACAddress = MacAddress.of(srcAddr);
 
         short etherType = bb.getShort();
         if (etherType == (short) 0x8100) {
@@ -349,7 +358,7 @@ public class Ethernet extends BasePacket {
         for (int i = 0; i < 6; ++i) {
             if (Ethernet.HEXES.indexOf(macBytes[i].toUpperCase().charAt(0)) == -1
                     || Ethernet.HEXES.indexOf(macBytes[i].toUpperCase().charAt(
-                            1)) == -1) {
+                    1)) == -1) {
                 return false;
             }
         }
@@ -365,7 +374,7 @@ public class Ethernet extends BasePacket {
      * @return The macAddress as a byte array
      */
     public static byte[] toMACAddress(final String macAddress) {
-        return MACAddress.valueOf(macAddress).toBytes();
+        return MacAddress.of(macAddress).getBytes();
     }
 
     /**
@@ -376,7 +385,7 @@ public class Ethernet extends BasePacket {
      * @return a long containing the mac address bytes
      */
     public static long toLong(final byte[] macAddress) {
-        return MACAddress.valueOf(macAddress).toLong();
+        return MacAddress.of(macAddress).getLong();
     }
 
     /**
@@ -386,7 +395,7 @@ public class Ethernet extends BasePacket {
      * @return the bytes of the mac address
      */
     public static byte[] toByteArray(final long macAddress) {
-        return MACAddress.valueOf(macAddress).toBytes();
+        return MacAddress.of(macAddress).getBytes();
     }
 
     /*

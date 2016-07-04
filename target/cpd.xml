@@ -1,0 +1,674 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pmd-cpd>
+   <duplication lines="45" tokens="319">
+      <file line="70"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="70"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <codefragment><![CDATA[                    "Start virtual port {} on virtual switch {} in virtual network {}",
+                    port, dpid, virtualNetwork.getTenantId());
+            OVXPort ovxPort = virtualNetwork.getSwitch(dpid.longValue())
+                    .getPort(port.shortValue());
+            Map<String, Object> reply = new HashMap<String, Object>(
+                    ovxPort.getDBObject());
+            reply.put(TenantHandler.VDPID, ovxPort.getParentSwitch()
+                    .getSwitchId());
+            reply.put(TenantHandler.TENANT, ovxPort.getTenantId());
+            resp = new JSONRPC2Response(reply, 0);
+
+        } catch (final MissingRequiredField e) {
+            resp = new JSONRPC2Response(
+                    new JSONRPC2Error(
+                            JSONRPC2Error.INVALID_PARAMS.getCode(),
+                            this.cmdName()
+                                    + ": Unable to delete this virtual port in the virtual network : "
+                                    + e.getMessage()), 0);
+        } catch (final InvalidPortException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid port : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid virtual dpid : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+        return resp;
+    }
+
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+
+}]]></codefragment>
+   </duplication>
+   <duplication lines="40" tokens="276">
+      <file line="458"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
+      <file line="544"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
+      <codefragment><![CDATA[                    .get(TenantHandler.PATH);
+            for (Map<String, Object> hop : path) {
+                // Fetch link
+                Long srcDpid = (Long) hop.get(TenantHandler.SRC_DPID);
+                Short srcPort = ((Integer) hop.get(TenantHandler.SRC_PORT))
+                        .shortValue();
+                Long dstDpid = (Long) hop.get(TenantHandler.DST_DPID);
+                Short dstPort = ((Integer) hop.get(TenantHandler.DST_PORT))
+                        .shortValue();
+                DPIDandPortPair dpp = new DPIDandPortPair(new DPIDandPort(
+                        srcDpid, srcPort), new DPIDandPort(dstDpid, dstPort));
+                // Register link in current manager
+                mngr.registerLink(dpp);
+                // Update list of managers that wait for this link
+                List<OVXNetworkManager> mngrs = this.linkToMngr.get(dpp);
+                if (mngrs == null) {
+                    this.linkToMngr
+                            .put(dpp, new ArrayList<OVXNetworkManager>());
+                }
+                this.linkToMngr.get(dpp).add(mngr);
+
+                // Register src/dst switches of this link
+                mngr.registerSwitch(srcDpid);
+                mngr.registerSwitch(dstDpid);
+                // Update list of managers that wait for these switches
+                mngrs = this.dpidToMngr.get(srcDpid);
+                if (mngrs == null) {
+                    this.dpidToMngr.put(srcDpid,
+                            new ArrayList<OVXNetworkManager>());
+                }
+                this.dpidToMngr.get(srcDpid).add(mngr);
+                mngrs = this.dpidToMngr.get(dstDpid);
+                if (mngrs == null) {
+                    this.dpidToMngr.put(dstDpid,
+                            new ArrayList<OVXNetworkManager>());
+                }
+                this.dpidToMngr.get(dstDpid).add(mngr);
+            }
+        }
+    }]]></codefragment>
+   </duplication>
+   <duplication lines="35" tokens="249">
+      <file line="62"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="61"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <codefragment><![CDATA[            this.log.info("Start virtual switch {} in virtual network {}",
+                    dpid, virtualNetwork.getTenantId());
+            OVXSwitch ovxSwitch = virtualNetwork.getSwitch(dpid.longValue());
+            Map<String, Object> reply = new HashMap<String, Object>(
+                    ovxSwitch.getDBObject());
+            reply.put(TenantHandler.TENANT, ovxSwitch.getTenantId());
+            resp = new JSONRPC2Response(reply, 0);
+
+        } catch (final MissingRequiredField e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Unable to create virtual network : "
+                    + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid DPID : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+        return resp;
+
+    }
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+}]]></codefragment>
+   </duplication>
+   <duplication lines="42" tokens="219">
+      <file line="76"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/MonitoringHandler.java"/>
+      <file line="174"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/TenantHandler.java"/>
+      <codefragment><![CDATA[            this.put("getVirtualAddressMapping", new GetVirtualAddressMapping());
+        }
+    };
+
+    @Override
+    public String[] handledRequests() {
+        return this.handlers.keySet().toArray(new String[] {});
+    }
+
+
+    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public JSONRPC2Response process(final JSONRPC2Request req,
+                                    final MessageContext ctxt) {
+
+        final ApiHandler m = this.handlers.get(req.getMethod());
+        if (m != null) {
+
+            if (m.getType() != JSONRPC2ParamsType.NO_PARAMS
+                    && m.getType() != req.getParamsType()) {
+                return new JSONRPC2Response(new JSONRPC2Error(
+                        JSONRPC2Error.INVALID_PARAMS.getCode(), req.getMethod()
+                        + " requires: " + m.getType() + "; got: "
+                        + req.getParamsType()), req.getID());
+            }
+
+            switch (m.getType()) {
+                case NO_PARAMS:
+                    return m.process(null);
+                case ARRAY:
+                    return m.process(req.getPositionalParams());
+                case OBJECT:
+                    return m.process(req.getNamedParams());
+                default:
+                    break;
+            }
+        }
+
+        return new JSONRPC2Response(JSONRPC2Error.METHOD_NOT_FOUND, req.getID());
+    }
+
+}]]></codefragment>
+   </duplication>
+   <duplication lines="24" tokens="199">
+      <file line="100"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXLink.java"/>
+      <file line="83"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
+      <codefragment><![CDATA[                Map<String, Object> reply = new HashMap<String, Object>(
+                        virtualLink.getDBObject());
+                reply.put(TenantHandler.TENANT, virtualLink.getTenantId());
+                resp = new JSONRPC2Response(reply, 0);
+            }
+        } catch (final MissingRequiredField e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Unable to create virtual link : "
+                    + e.getMessage()), 0);
+        } catch (final VirtualLinkException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid virtual link : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final IndexOutOfBoundException e) {
+            resp = new JSONRPC2Response(
+                    new JSONRPC2Error(
+                            JSONRPC2Error.INVALID_PARAMS.getCode(),
+                            this.cmdName()
+                                    + ": Impossible to create the virtual link, too many links in this virtual network : "]]></codefragment>
+   </duplication>
+   <duplication lines="28" tokens="192">
+      <file line="75"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
+      <file line="87"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="87"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <codefragment><![CDATA[                    + e.getMessage()), 0);
+        } catch (final InvalidPortException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid port : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid virtual dpid : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+        return resp;
+    }
+
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+
+}]]></codefragment>
+   </duplication>
+   <duplication lines="27" tokens="187">
+      <file line="106"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
+      <file line="228"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
+      <codefragment><![CDATA[        if (this.checksum == 0) {
+            bb.rewind();
+            int accumulation = 0;
+
+            // compute pseudo header mac
+            if (this.parent != null && this.parent instanceof IPv4) {
+                final IPv4 ipv4 = (IPv4) this.parent;
+                accumulation += (ipv4.getSourceAddress() >> 16 & 0xffff)
+                        + (ipv4.getSourceAddress() & 0xffff);
+                accumulation += (ipv4.getDestinationAddress() >> 16 & 0xffff)
+                        + (ipv4.getDestinationAddress() & 0xffff);
+                accumulation += ipv4.getProtocol() & 0xff;
+                accumulation += length & 0xffff;
+            }
+
+            for (int i = 0; i < length / 2; ++i) {
+                accumulation += 0xffff & bb.getShort();
+            }
+            // pad to an even number of shorts
+            if (length % 2 > 0) {
+                accumulation += (bb.get() & 0xff) << 8;
+            }
+
+            accumulation = (accumulation >> 16 & 0xffff)
+                    + (accumulation & 0xffff);
+            this.checksum = (short) (~accumulation & 0xffff);
+            bb.putShort(6, this.checksum);]]></codefragment>
+   </duplication>
+   <duplication lines="25" tokens="165">
+      <file line="39"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
+      <file line="41"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="41"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <codefragment><![CDATA[    Logger log = LogManager.getLogger(RemoveOVXPort.class.getName());
+
+    @Override
+    public JSONRPC2Response process(final Map<String, Object> params) {
+        JSONRPC2Response resp = null;
+
+        try {
+            final Number tenantId = HandlerUtils.<Number>fetchField(
+                    TenantHandler.TENANT, params, true, null);
+            final Number dpid = HandlerUtils.<Number>fetchField(
+                    TenantHandler.VDPID, params, true, null);
+            final Number port = HandlerUtils.<Number>fetchField(
+                    TenantHandler.VPORT, params, true, null);
+
+            HandlerUtils.isValidTenantId(tenantId.intValue());
+            HandlerUtils
+                    .isValidOVXSwitch(tenantId.intValue(), dpid.longValue());
+            HandlerUtils.isValidOVXPort(tenantId.intValue(), dpid.longValue(),
+                    port.shortValue());
+
+            final OVXMap map = OVXMap.getInstance();
+            final OVXNetwork virtualNetwork = map.getVirtualNetwork(tenantId
+                    .intValue());
+
+            virtualNetwork.removePort(dpid.longValue(), port.shortValue());]]></codefragment>
+   </duplication>
+   <duplication lines="24" tokens="151">
+      <file line="71"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="74"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="73"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <codefragment><![CDATA[                    + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid DPID : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+
+        return resp;
+    }
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+
+}]]></codefragment>
+   </duplication>
+   <duplication lines="24" tokens="146">
+      <file line="42"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/MonitoringService.java"/>
+      <file line="42"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/TenantService.java"/>
+      <codefragment><![CDATA[        this.dispatcher.register(new MonitoringHandler());
+    }
+
+    @Override
+    public void handle(final HttpServletRequest request,
+            final HttpServletResponse response) {
+        JSONRPC2Request json = null;
+        JSONRPC2Response jsonResp = null;
+        try {
+            json = this.parseJSONRequest(request);
+            jsonResp = this.dispatcher.process(json, null);
+            jsonResp.setID(json.getID());
+        } catch (final IOException e) {
+            jsonResp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.PARSE_ERROR.getCode(),
+                    AbstractService.stack2string(e)), 0);
+        } catch (final JSONRPC2ParseException e) {
+            jsonResp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.PARSE_ERROR.getCode(),
+                    AbstractService.stack2string(e)), 0);
+        }
+        try {
+            this.writeJSONObject(response, jsonResp);
+        } catch (final IOException e) {]]></codefragment>
+   </duplication>
+   <duplication lines="26" tokens="139">
+      <file line="209"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/actions/OVXActionOutput.java"/>
+      <file line="288"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/actions/OVXActionOutput.java"/>
+      <codefragment><![CDATA[                        } else {
+                            /*
+                             * If inPort is edge and outPort is link:
+                             * - retrieve link
+                             * - generate the link's FMs
+                             * - add actions to current FM to write packet fields
+                             * related to the link
+                             */
+                            final OVXLink link = outPort.getLink().getOutLink();
+                            linkId = link.getLinkId();
+                            try {
+                                flowId = vnet.getFlowManager().storeFlowValues(
+                                        match.getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                        match.getMatch().get(MatchField.ETH_DST).getBytes());
+                                link.generateLinkFMs(fm.clone(), flowId);
+                                approvedActions.addAll(new OVXLinkUtils(sw.getTenantId(), linkId, flowId)
+                                        .setLinkFields(sw.getOfVersion()));
+                            } catch (IndexOutOfBoundException e) {
+                                log.error(
+                                        "Too many host to generate the flow pairs in this virtual network {}. "
+                                                + "Dropping flow-mod {} ",
+                                        sw.getTenantId(), fm);
+                                throw new DroppedMessageException();
+                            }
+                        }
+                    } else {]]></codefragment>
+   </duplication>
+   <duplication lines="24" tokens="138">
+      <file line="122"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/statistics/OVXAggregateStatsRequest.java"/>
+      <file line="131"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/statistics/OVXFlowStatsRequest.java"/>
+      <codefragment><![CDATA[    }
+
+    private List<PhysicalSwitch> getPhysicalSwitches(OVXSwitch sw) {
+        if (sw instanceof OVXSingleSwitch) {
+            try {
+                return sw.getMap().getPhysicalSwitches(sw);
+            } catch (SwitchMappingException e) {
+                log.debug("OVXSwitch {} does not map to any physical switches",
+                        sw.getSwitchName());
+                return new LinkedList<>();
+            }
+        }
+        LinkedList<PhysicalSwitch> sws = new LinkedList<PhysicalSwitch>();
+        for (OVXPort p : sw.getPorts().values()) {
+            if (!sws.contains(p.getPhysicalPort().getParentSwitch())) {
+                sws.add(p.getPhysicalPort().getParentSwitch());
+            }
+        }
+        return sws;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.ofAggregateStatsRequest.hashCode();]]></codefragment>
+   </duplication>
+   <duplication lines="18" tokens="137">
+      <file line="93"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectHost.java"/>
+      <file line="92"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXPort.java"/>
+      <codefragment><![CDATA[                    + ": Unable to connect host : " + e.getMessage()),
+                    0);
+        } catch (final InvalidPortException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid port : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final IndexOutOfBoundException e) {
+            resp = new JSONRPC2Response(
+                    new JSONRPC2Error(
+                            JSONRPC2Error.INVALID_PARAMS.getCode(),
+                            this.cmdName()
+                                    + ": Impossible to create the virtual port, too many ports on this virtual switch : "
+                                    + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {]]></codefragment>
+   </duplication>
+   <duplication lines="14" tokens="136">
+      <file line="87"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
+      <file line="99"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
+      <codefragment><![CDATA[                                    + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid DPID : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        } catch (ControllerUnavailableException e) {]]></codefragment>
+   </duplication>
+   <duplication lines="14" tokens="134">
+      <file line="87"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
+      <file line="99"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
+      <file line="71"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="74"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="73"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <codefragment><![CDATA[                                    + e.getMessage()), 0);
+        } catch (final InvalidDPIDException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid DPID : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        } catch (ControllerUnavailableException e) {]]></codefragment>
+   </duplication>
+   <duplication lines="22" tokens="122">
+      <file line="39"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="40"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="40"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <codefragment><![CDATA[    Logger log = LogManager.getLogger(RemoveOVXSwitch.class.getName());
+
+
+    @Override
+    public JSONRPC2Response process(final Map<String, Object> params) {
+        JSONRPC2Response resp = null;
+
+        try {
+            final Number tenantId = HandlerUtils.<Number>fetchField(
+                    TenantHandler.TENANT, params, true, null);
+            final Number dpid = HandlerUtils.<Number>fetchField(
+                    TenantHandler.VDPID, params, true, null);
+
+
+            HandlerUtils.isValidTenantId(tenantId.intValue());
+            HandlerUtils
+                    .isValidOVXSwitch(tenantId.intValue(), dpid.longValue());
+
+            final OVXMap map = OVXMap.getInstance();
+            final OVXNetwork virtualNetwork = map.getVirtualNetwork(tenantId
+                    .intValue());
+            virtualNetwork.removeSwitch(dpid.longValue());]]></codefragment>
+   </duplication>
+   <duplication lines="20" tokens="114">
+      <file line="217"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
+      <file line="253"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
+      <codefragment><![CDATA[    private OFPacketOut createLLDPPacketOut(final PhysicalPort port)
+            throws PortMappingException {
+        if (port == null) {
+            throw new PortMappingException(
+                    "Cannot send LLDP associated with a nonexistent port");
+        }
+
+        ArrayList<OFAction> actionList = new ArrayList<OFAction>();
+        OFActions actions = this.factory.actions();
+
+        OFActionOutput output = actions.buildOutput()
+                .setMaxLen(0xffff)
+                .setPort(OFPort.of(port.getPortNumber()))
+                .build();
+        actionList.add(output);
+
+        this.lldpPacket.setPort(port);
+        this.ethPacket.setSourceMACAddress(port.getOfPort().getHwAddr().getBytes());
+
+        final byte[] lldp = this.ethPacket.serialize();]]></codefragment>
+   </duplication>
+   <duplication lines="19" tokens="110">
+      <file line="134"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXRoute.java"/>
+      <file line="116"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
+      <codefragment><![CDATA[                                    + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        } catch (final InvalidPriorityException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+        return resp;
+    }
+
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+}]]></codefragment>
+   </duplication>
+   <duplication lines="20" tokens="110">
+      <file line="77"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/DisconnectOVXLink.java"/>
+      <file line="72"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXNetwork.java"/>
+      <file line="75"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="67"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXNetwork.java"/>
+      <file line="78"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="68"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXNetwork.java"/>
+      <file line="77"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <codefragment><![CDATA[                    + ": Invalid virtual link : " + e.getMessage()), 0);
+        } catch (final InvalidTenantIdException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
+        } catch (final NetworkMappingException e) {
+            resp = new JSONRPC2Response(new JSONRPC2Error(
+                    JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
+                    + ": " + e.getMessage()), 0);
+        }
+        return resp;
+    }
+
+    @Override
+    public JSONRPC2ParamsType getType() {
+        return JSONRPC2ParamsType.OBJECT;
+    }
+
+
+}]]></codefragment>
+   </duplication>
+   <duplication lines="17" tokens="104">
+      <file line="224"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
+      <file line="156"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
+      <codefragment><![CDATA[            ((IPv4) this.parent).setProtocol(IPv4.PROTOCOL_TCP);
+        }
+
+        // compute checksum if needed
+        if (this.checksum == 0) {
+            bb.rewind();
+            int accumulation = 0;
+
+            // compute pseudo header mac
+            if (this.parent != null && this.parent instanceof IPv4) {
+                final IPv4 ipv4 = (IPv4) this.parent;
+                accumulation += (ipv4.getSourceAddress() >> 16 & 0xffff)
+                        + (ipv4.getSourceAddress() & 0xffff);
+                accumulation += (ipv4.getDestinationAddress() >> 16 & 0xffff)
+                        + (ipv4.getDestinationAddress() & 0xffff);
+                accumulation += ipv4.getProtocol() & 0xff;
+                accumulation += length & 0xffff;]]></codefragment>
+   </duplication>
+   <duplication lines="13" tokens="102">
+      <file line="106"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
+      <file line="160"
+            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
+      <codefragment><![CDATA[        if (this.checksum == 0) {
+            bb.rewind();
+            int accumulation = 0;
+
+            // compute pseudo header mac
+            if (this.parent != null && this.parent instanceof IPv4) {
+                final IPv4 ipv4 = (IPv4) this.parent;
+                accumulation += (ipv4.getSourceAddress() >> 16 & 0xffff)
+                        + (ipv4.getSourceAddress() & 0xffff);
+                accumulation += (ipv4.getDestinationAddress() >> 16 & 0xffff)
+                        + (ipv4.getDestinationAddress() & 0xffff);
+                accumulation += ipv4.getProtocol() & 0xff;
+                accumulation += length & 0xffff;]]></codefragment>
+   </duplication>
+</pmd-cpd>

@@ -12,25 +12,41 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.address;
 
 import java.util.LinkedList;
 import java.util.List;
 
+import net.onrc.openvirtex.messages.OVXMessageUtil;
+import net.onrc.openvirtex.messages.actions.OVXActionSetNwSrc;
+import net.onrc.openvirtex.messages.actions.OVXActionSetNwDst;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFMatch;
-import org.openflow.protocol.Wildcards.Flag;
-import org.openflow.protocol.action.OFAction;
+
 
 import net.onrc.openvirtex.elements.Mappable;
 import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.AddressMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
-import net.onrc.openvirtex.messages.actions.OVXActionNetworkLayerDestination;
-import net.onrc.openvirtex.messages.actions.OVXActionNetworkLayerSource;
+import org.projectfloodlight.openflow.protocol.OFFactories;
+import org.projectfloodlight.openflow.protocol.OFFactory;
+import org.projectfloodlight.openflow.protocol.OFVersion;
+import org.projectfloodlight.openflow.protocol.action.*;
+import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.IPv4Address;
+
 
 /**
  * Utility class for IP mapping operations. Implements methods
@@ -47,16 +63,21 @@ public final class IPMapper {
     }
 
     public static Integer getPhysicalIp(Integer tenantId, Integer virtualIP) {
+
         final Mappable map = OVXMap.getInstance();
         final OVXIPAddress vip = new OVXIPAddress(tenantId, virtualIP);
         try {
             PhysicalIPAddress pip;
             if (map.hasPhysicalIP(vip, tenantId)) {
                 pip = map.getPhysicalIP(vip, tenantId);
+
+                log.debug("tenantId[" + tenantId + "] has " + vip.toString()
+                + " -> " + pip.toString());
+
             } else {
                 pip = new PhysicalIPAddress(map.getVirtualNetwork(tenantId)
                         .nextIP());
-                log.debug("Adding IP mapping {} -> {} for tenant {}", vip, pip,
+                log.info("Adding IP mapping {} -> {} for tenant {}", vip, pip,
                         tenantId);
                 map.addIP(pip, vip);
             }
@@ -73,42 +94,159 @@ public final class IPMapper {
         return 0;
     }
 
-    public static void rewriteMatch(final Integer tenantId, final OFMatch match) {
-        match.setNetworkSource(getPhysicalIp(tenantId, match.getNetworkSource()));
-        match.setNetworkDestination(getPhysicalIp(tenantId,
-                match.getNetworkDestination()));
+    public static Match rewriteMatch(final Integer tenantId, final Match match) {
+        Match temp = match;
+
+        if(match.get(MatchField.IPV4_SRC) != null)
+        {
+            temp = OVXMessageUtil.updateMatch(temp,
+                    temp.createBuilder()
+                            .setExact(MatchField.IPV4_SRC,
+                                    IPv4Address.of(getPhysicalIp(tenantId, temp.get(MatchField.IPV4_SRC).getInt())))
+                    .build());
+        }
+
+        if(match.get(MatchField.IPV4_DST) != null)
+        {
+            temp = OVXMessageUtil.updateMatch(temp,
+                    temp.createBuilder()
+                            .setExact(MatchField.IPV4_DST,
+                                    IPv4Address.of(getPhysicalIp(tenantId, temp.get(MatchField.IPV4_DST).getInt())))
+                    .build());
+        }
+
+        return temp;
     }
+
 
     public static List<OFAction> prependRewriteActions(final Integer tenantId,
-            final OFMatch match) {
+                                                       final Match match) {
+        if(match.getVersion() == OFVersion.OF_10)
+            return prependRewriteActionsVer10(tenantId, match);
+        else
+            return prependRewriteActionsVer13(tenantId, match);
+
+
+    }
+
+    public static List<OFAction> prependRewriteActionsVer13(final Integer tenantId,
+                                                            final Match match) {
         final List<OFAction> actions = new LinkedList<OFAction>();
-        if (!match.getWildcardObj().isWildcarded(Flag.NW_SRC)) {
-            final OVXActionNetworkLayerSource srcAct = new OVXActionNetworkLayerSource();
-            srcAct.setNetworkAddress(getPhysicalIp(tenantId,
-                    match.getNetworkSource()));
-            actions.add(srcAct);
+
+        OFFactory factory = OFFactories.getFactory(match.getVersion());
+
+        if (match.get(MatchField.IPV4_SRC) != null) {
+            if ( match.get(MatchField.IPV4_SRC).getInt() != 0) {
+                OFActionSetField ofActionSetField  = factory.actions().buildSetField()
+                        .setField(factory.oxms().ipv4Src(IPv4Address.of(
+                                getPhysicalIp(tenantId,
+                                        match.get(MatchField.IPV4_SRC).getInt()))))
+                        .build();
+                actions.add(ofActionSetField);
+            }
         }
-        if (!match.getWildcardObj().isWildcarded(Flag.NW_DST)) {
-            final OVXActionNetworkLayerDestination dstAct = new OVXActionNetworkLayerDestination();
-            dstAct.setNetworkAddress(getPhysicalIp(tenantId,
-                    match.getNetworkDestination()));
-            actions.add(dstAct);
+
+        if (match.get(MatchField.IPV4_DST) != null) {
+            if(match.get(MatchField.IPV4_DST).getInt() != 0) {
+                OFActionSetField ofActionSetField = factory.actions().buildSetField()
+                        .setField(factory.oxms().ipv4Dst(IPv4Address.of(
+                                getPhysicalIp(tenantId,
+                                        match.get(MatchField.IPV4_DST).getInt()))))
+                        .build();
+                actions.add(ofActionSetField);
+            }
         }
         return actions;
     }
 
-    public static List<OFAction> prependUnRewriteActions(final OFMatch match) {
+
+    public static List<OFAction> prependRewriteActionsVer10(final Integer tenantId,
+                                                       final Match match) {
         final List<OFAction> actions = new LinkedList<OFAction>();
-        if (!match.getWildcardObj().isWildcarded(Flag.NW_SRC)) {
-            final OVXActionNetworkLayerSource srcAct = new OVXActionNetworkLayerSource();
-            srcAct.setNetworkAddress(match.getNetworkSource());
-            actions.add(srcAct);
+
+        OFActions action = OFFactories.getFactory(match.getVersion()).actions();
+
+        if (match.get(MatchField.IPV4_SRC) != null) {
+            if ( match.get(MatchField.IPV4_SRC).getInt() != 0) {
+                OFActionSetNwSrc ofActionSetNwSrc = action.buildSetNwSrc()
+                        .setNwAddr(IPv4Address.of(getPhysicalIp(tenantId,
+                                match.get(MatchField.IPV4_SRC).getInt())))
+                        .build();
+                //final OVXActionSetNwSrc srcAct = new OVXActionSetNwSrc(ofActionSetNwSrc);
+                actions.add(ofActionSetNwSrc);
+            }
         }
-        if (!match.getWildcardObj().isWildcarded(Flag.NW_DST)) {
-            final OVXActionNetworkLayerDestination dstAct = new OVXActionNetworkLayerDestination();
-            dstAct.setNetworkAddress(match.getNetworkDestination());
-            actions.add(dstAct);
+
+        if (match.get(MatchField.IPV4_DST) != null) {
+            if(match.get(MatchField.IPV4_DST).getInt() != 0) {
+                OFActionSetNwDst ofActionSetNwDst = action.buildSetNwDst()
+                        .setNwAddr(IPv4Address.of(getPhysicalIp(tenantId,
+                                match.get(MatchField.IPV4_DST).getInt())))
+                        .build();
+                //final OVXActionSetNwDst dstAct = new OVXActionSetNwDst(ofActionSetNwDst);
+                actions.add(ofActionSetNwDst);
+            }
         }
         return actions;
+    }
+
+    public static List<OFAction> prependUnRewriteActions(final Match match) {
+        if(match.getVersion() == OFVersion.OF_10)
+            return prependUnRewriteActionsVer10(match);
+        else
+            return prependUnRewriteActionsVer13(match);
+
+    }
+    public static List<OFAction> prependUnRewriteActionsVer13(final Match match) {
+        final List<OFAction> actions = new LinkedList<OFAction>();
+
+        OFFactory factory = OFFactories.getFactory(match.getVersion());
+
+        if (match.get(MatchField.IPV4_SRC) != null) {
+            if(match.get(MatchField.IPV4_SRC).getInt() != 0) {
+                OFActionSetField ofActionSetField  = factory.actions().buildSetField()
+                        .setField(factory.oxms().ipv4Src(match.get(MatchField.IPV4_SRC)))
+                        .build();
+                actions.add(ofActionSetField);
+            }
+        }
+
+        if (match.get(MatchField.IPV4_DST) != null) {
+            if(match.get(MatchField.IPV4_DST).getInt() != 0) {
+                OFActionSetField ofActionSetField  = factory.actions().buildSetField()
+                        .setField(factory.oxms().ipv4Dst(match.get(MatchField.IPV4_DST)))
+                        .build();
+                actions.add(ofActionSetField);
+            }
+        }
+        return actions;
+    }
+
+    public static List<OFAction> prependUnRewriteActionsVer10(final Match match) {
+        final List<OFAction> actions = new LinkedList<OFAction>();
+
+        OFActions action = OFFactories.getFactory(match.getVersion()).actions();
+
+
+        if (match.get(MatchField.IPV4_SRC) != null) {
+            if(match.get(MatchField.IPV4_SRC).getInt() != 0) {
+                OFActionSetNwSrc ofActionSetNwSrc = action.buildSetNwSrc()
+                        .setNwAddr(match.get(MatchField.IPV4_SRC))
+                        .build();
+//                final OVXActionSetNwSrc srcAct = new OVXActionSetNwSrc(ofActionSetNwSrc);
+                actions.add(ofActionSetNwSrc);
+            }
+        }
+
+        if (match.get(MatchField.IPV4_DST) != null) {
+            if(match.get(MatchField.IPV4_DST).getInt() != 0) {
+                OFActionSetNwDst ofActionSetNwDst = action.buildSetNwDst()
+                        .setNwAddr(match.get(MatchField.IPV4_DST))
+                        .build();
+//                final OVXActionSetNwDst dstAct = new OVXActionSetNwDst(ofActionSetNwDst);
+                actions.add(ofActionSetNwDst);
+            }
+        }
+         return actions;
     }
 }

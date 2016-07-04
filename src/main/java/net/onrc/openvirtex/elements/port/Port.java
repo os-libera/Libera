@@ -12,11 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.port;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
 import net.onrc.openvirtex.elements.Persistable;
@@ -24,11 +32,9 @@ import net.onrc.openvirtex.elements.datapath.DPIDandPort;
 import net.onrc.openvirtex.elements.datapath.Switch;
 import net.onrc.openvirtex.elements.link.Link;
 
-import java.util.Arrays;
-
-import net.onrc.openvirtex.util.MACAddress;
-
-import org.openflow.protocol.OFPhysicalPort;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.PortSpeed;
 
 /**
  * The Class Port.
@@ -41,7 +47,7 @@ import org.openflow.protocol.OFPhysicalPort;
 
 @SuppressWarnings("rawtypes")
 
-public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
+public class Port<T1 extends Switch, T2 extends Link>
         implements Persistable {
 
     /**
@@ -49,45 +55,81 @@ public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
      */
     public static final String DB_KEY = "ports";
 
-    protected MACAddress mac;
+    protected MacAddress mac;
     protected Boolean isEdge;
     protected T1 parentSwitch;
     protected LinkPair<T2> portLink;
 
     // TODO: duplexing/speed on port/link???
 
+    //org.projectfloodlight.openflow
+    protected OFPortDesc ofPort;
+
+    protected short portNumber;
+    protected byte[] hardwareAddress;
+    protected String name;
+    protected Set<OFPortConfig> config = null;
+    protected Set<OFPortState> state = null;
+    protected Set<OFPortFeatures> currentFeatures = null;
+    protected Set<OFPortFeatures> advertisedFeatures = null;
+    protected Set<OFPortFeatures> supportedFeatures = null;
+    protected Set<OFPortFeatures> peerFeatures = null;
+
     /**
      * Instantiates a new port.
-     * 
+     *
      * @param ofPort the OpenFlow physical port
      */
-    protected Port(final OFPhysicalPort ofPort) {
-        super();
-        this.portNumber = ofPort.getPortNumber();
-        this.hardwareAddress = ofPort.getHardwareAddress();
+    protected Port(final OFPortDesc ofPort) {
+        this.ofPort = ofPort.createBuilder().build();
+
+        this.portNumber = ofPort.getPortNo().getShortPortNumber();
+        this.hardwareAddress = ofPort.getHwAddr().getBytes();
         this.name = ofPort.getName();
-        this.config = ofPort.getConfig();
-        this.state = ofPort.getState();
-        this.currentFeatures = ofPort.getCurrentFeatures();
-        this.advertisedFeatures = ofPort.getAdvertisedFeatures();
-        this.supportedFeatures = ofPort.getSupportedFeatures();
-        this.peerFeatures = ofPort.getPeerFeatures();
-        if (this.hardwareAddress == null) {
+        this.mac = ofPort.getHwAddr();
+        this.isEdge = true;
+        this.parentSwitch = null;
+        this.portLink = null;
+
+        this.config = new HashSet<>();
+        this.config.addAll(ofPort.getConfig());
+
+        this.state = new HashSet<>();
+        this.state.addAll(ofPort.getState());
+
+        this.currentFeatures = new HashSet<>();
+        this.currentFeatures.addAll(ofPort.getCurr());
+
+        this.advertisedFeatures = new HashSet<>();
+        this.advertisedFeatures.addAll(ofPort.getAdvertised());
+
+        this.supportedFeatures = new HashSet<>();
+        this.supportedFeatures.addAll(ofPort.getSupported());
+
+        this.peerFeatures = new HashSet<>();
+        this.peerFeatures.addAll(ofPort.getPeer());
+
+        if(this.hardwareAddress == null) {
             this.hardwareAddress = new byte[] {(byte) 0xDE, (byte) 0xAD,
                     (byte) 0xBE, (byte) 0xEF, (byte) 0xCA, (byte) 0xFE};
         }
-        this.mac = new MACAddress(this.hardwareAddress);
+        this.mac = MacAddress.of(this.hardwareAddress);
         this.isEdge = true;
         this.parentSwitch = null;
         this.portLink = null;
     }
 
-    @Override
-    public void setHardwareAddress(final byte[] hardwareAddress) {
-        super.setHardwareAddress(hardwareAddress);
-        // no way to update MACAddress instances
-        this.mac = new MACAddress(hardwareAddress);
+     /*
+        Gets short PortNo
+     */
+    public short getPortNumber() {
+        return this.ofPort.getPortNo().getShortPortNumber();
     }
+
+    /*
+        Gets the PortDesc
+     */
+    public OFPortDesc getOfPort() { return this.ofPort; }
 
     /**
      * Gets the checks if is edge.
@@ -148,13 +190,23 @@ public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
      * @return the highest nominal throughput currently exposed by the port
      */
     public Integer getCurrentThroughput() {
-        PortFeatures feature = new PortFeatures(this.currentFeatures);
-        return feature.getHighestThroughput();
+
+        PortSpeed portSpeed = PortSpeed.SPEED_NONE;
+
+        for (OFPortFeatures feat : this.currentFeatures) {
+            portSpeed = PortSpeed.max(portSpeed, feat.getPortSpeed());
+        }
+
+        return new Integer((int)(portSpeed.getSpeedBps() / 1000L / 1000L));
+
+        //PortFeatures feature = new PortFeatures(this.currentFeatures);
+        //return feature.getHighestThroughput();
     }
 
     @Override
     public String toString() {
-        return "PORT:\n- portNumber: " + this.portNumber + "\n- parentSwitch: "
+        return this.ofPort.toString() + "\n isEdge = " + this.isEdge;
+        /*return "PORT:\n- portNumber: " + this.portNumber + "\n- parentSwitch: "
                 + this.getParentSwitch().getSwitchName()
                 + "\n- hardwareAddress: "
                 + MACAddress.valueOf(this.hardwareAddress).toString()
@@ -163,7 +215,7 @@ public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
                 + "\n- advertisedFeatures: " + this.advertisedFeatures
                 + "\n- supportedFeatures: " + this.supportedFeatures
                 + "\n- peerFeatures: " + this.peerFeatures + "\n- isEdge: "
-                + this.isEdge;
+                + this.isEdge;*/
     }
 
     /*
@@ -175,19 +227,20 @@ public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
     public int hashCode() {
         final int prime = 307;
         int result = 1;
-        result = prime * result + this.advertisedFeatures;
-        result = prime * result + this.config;
+        result = prime * result + this.advertisedFeatures.hashCode();
+        result = prime * result + this.config.hashCode();
         result = prime * result + Arrays.hashCode(this.hardwareAddress);
         result = prime * result
                 + (this.name == null ? 0 : this.name.hashCode());
         result = prime * result + this.portNumber;
         result = prime * result + this.parentSwitch.hashCode();
         return result;
+        //return this.ofPort.hashCode();
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
+       if (this == obj) {
             return true;
         }
         if (!super.equals(obj)) {
@@ -226,7 +279,7 @@ public class Port<T1 extends Switch, T2 extends Link> extends OFPhysicalPort
     public Map<String, Object> getDBObject() {
         Map<String, Object> dbObject = new HashMap<String, Object>();
         dbObject.put(TenantHandler.DPID, this.parentSwitch.getSwitchId());
-        dbObject.put(TenantHandler.PORT, this.getPortNumber());
+        dbObject.put(TenantHandler.PORT, this.portNumber);
         return dbObject;
     }
 

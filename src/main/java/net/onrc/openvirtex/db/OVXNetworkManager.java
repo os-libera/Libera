@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.db;
 
@@ -41,10 +50,10 @@ import net.onrc.openvirtex.exceptions.PortMappingException;
 import net.onrc.openvirtex.exceptions.RoutingAlgorithmException;
 import net.onrc.openvirtex.routing.RoutingAlgorithms.RoutingType;
 import net.onrc.openvirtex.routing.SwitchRoute;
-import net.onrc.openvirtex.util.MACAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.projectfloodlight.openflow.types.MacAddress;
 
 /**
  * Component that creates a previously stored virtual network when all required
@@ -111,8 +120,8 @@ public class OVXNetworkManager {
      */
     @SuppressWarnings("unchecked")
     public OVXNetwork createNetwork() {
-    	// Create OVX network
-    	final ArrayList<String> ctrlUrls = (ArrayList<String>) this.vnet
+        // Create OVX network
+        final ArrayList<String> ctrlUrls = (ArrayList<String>) this.vnet
                 .get(TenantHandler.CTRLURLS);
         final IPAddress addr = new OVXIPAddress(this.tenantId, (Integer) this.vnet.get(TenantHandler.NETADD));
         final Short netMask = ((Integer) this.vnet.get(TenantHandler.NETMASK))
@@ -223,7 +232,7 @@ public class OVXNetworkManager {
      * direction to online. Create and start virtual network if all links and
      * switches are online.
      *
-     * @param key
+     * @param port
      *            Unique link
      */
     public synchronized void setPort(final DPIDandPort port) {
@@ -242,7 +251,7 @@ public class OVXNetworkManager {
     /**
      * Changes link from online to offline state.
      *
-     * @param key
+     * @param port
      *            Unique link
      */
     public synchronized void unsetPort(final DPIDandPort port) {
@@ -297,7 +306,7 @@ public class OVXNetworkManager {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private void createElements() {
 
-	if (this.virtualNetwork == null) return;
+        if (this.virtualNetwork == null) return;
         OVXNetworkManager.log.info("Virtual network {} ready for boot",
                 this.tenantId);
 
@@ -477,7 +486,7 @@ public class OVXNetworkManager {
                 final long dpid = (Long) host.get(TenantHandler.VDPID);
                 final short port = ((Integer) host.get(TenantHandler.VPORT))
                         .shortValue();
-                final MACAddress macAddr = MACAddress.valueOf((Long) host
+                final MacAddress macAddr = MacAddress.of((Long) host
                         .get(TenantHandler.MAC));
                 final int hostId = (Integer) host.get(TenantHandler.HOST);
                 try {

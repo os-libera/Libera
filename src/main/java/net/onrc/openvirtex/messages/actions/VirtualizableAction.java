@@ -12,22 +12,31 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages.actions;
-
-import java.util.List;
 
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.exceptions.ActionVirtualizationDenied;
 import net.onrc.openvirtex.exceptions.DroppedMessageException;
 import net.onrc.openvirtex.protocol.OVXMatch;
+import org.projectfloodlight.openflow.protocol.action.OFAction;
 
-import org.openflow.protocol.action.OFAction;
+import java.util.List;
 
+/**
+ * Created by Administrator on 2016-04-21.
+ */
 public interface VirtualizableAction {
-
     public void virtualize(OVXSwitch sw, List<OFAction> approvedActions,
-            OVXMatch match) throws ActionVirtualizationDenied,
+                           OVXMatch match) throws ActionVirtualizationDenied,
             DroppedMessageException;
-
 }

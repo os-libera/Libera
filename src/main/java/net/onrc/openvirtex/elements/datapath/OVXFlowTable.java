@@ -12,38 +12,42 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.onrc.openvirtex.messages.OVXFlowMod;
+import net.onrc.openvirtex.messages.OVXMessageUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFFlowMod;
-import org.openflow.protocol.OFMatch;
-import org.openflow.protocol.OFPort;
-import org.openflow.protocol.OFError.OFFlowModFailedCode;
+
 
 import net.onrc.openvirtex.exceptions.MappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
-import net.onrc.openvirtex.messages.OVXFlowMod;
-import net.onrc.openvirtex.messages.OVXMessageUtil;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.U32;
+import org.projectfloodlight.openflow.types.U64;
 
 /**
  * Virtualized version of the switch flow table.
  */
 public class OVXFlowTable implements FlowTable {
 
-    private final Logger log = LogManager.getLogger(OVXFlowTable.class
-            .getName());
+    private final Logger log = LogManager.getLogger(OVXFlowTable.class.getName());
 
     // OVXSwitch tied to this table
     protected OVXSwitch vswitch;
@@ -84,7 +88,7 @@ public class OVXFlowTable implements FlowTable {
         this.freeList = new LinkedList<Long>();
         this.vswitch = vsw;
 
-        /* initialise stats */
+         /* initialise stats */
         this.activeEntries = 0;
         this.lookupCount = 0;
         this.matchCount = 0;
@@ -107,19 +111,24 @@ public class OVXFlowTable implements FlowTable {
      * @return if the FlowMod needs to be sent south during devirtualization.
      */
     public boolean handleFlowMods(OVXFlowMod fm) {
-        switch (fm.getCommand()) {
-        case OFFlowMod.OFPFC_ADD:
-            return doFlowModAdd(fm);
-        case OFFlowMod.OFPFC_MODIFY:
-        case OFFlowMod.OFPFC_MODIFY_STRICT:
-            return doFlowModModify(fm);
-        case OFFlowMod.OFPFC_DELETE:
-            return doFlowModDelete(fm, false);
-        case OFFlowMod.OFPFC_DELETE_STRICT:
-            return doFlowModDelete(fm, true);
-        default:
-            /* we don't know what it is. drop. */
-            return false;
+        this.log.info("handleFlowMods");
+
+        switch (fm.getFlowMod().getCommand()) {
+            case ADD:
+                this.log.info("ADD");
+                return doFlowModAdd(fm);
+            case MODIFY:
+            case MODIFY_STRICT:
+                this.log.info("MODIFY");
+                return doFlowModModify(fm);
+            case DELETE:
+                this.log.info("DELETE");
+                return doFlowModDelete(fm, false);
+            case DELETE_STRICT:
+                this.log.info("DELETE_STRICT");
+                return doFlowModDelete(fm, true);
+            default:
+                return false;
         }
     }
 
@@ -128,7 +137,7 @@ public class OVXFlowTable implements FlowTable {
      * initially be a controller. If not, checks for entries, and only allows
      * entries that exist here to be deleted.
      *
-     * @param fm the flowmod
+     * @param fm the ovxFlowMod
      * @param strict true if a STRICT match
      * @return true if FlowMod should be written south
      */
@@ -137,32 +146,32 @@ public class OVXFlowTable implements FlowTable {
         if (this.flowmodMap.isEmpty()) {
             return false;
         }
-        /* fetch our vswitches */
         try {
-            /*
-             * expand wildcard delete, remove all entries pertaining just to
-             * this tenant
-             */
-            if (fm.getMatch().getWildcards() == OFMatch.OFPFW_ALL) {
+            int count = 0;
+
+            for(MatchField field : fm.getFlowMod().getMatch().getMatchFields())
+                count++;
+
+            if (count == 0) {
                 List<PhysicalSwitch> pList = this.vswitch.getMap()
                         .getPhysicalSwitches(this.vswitch);
                 for (PhysicalSwitch psw : pList) {
-                    /* do FlowMod cleanup like when port dies. */
+                    // do FlowMod cleanup like when port dies.
                     psw.cleanUpTenant(this.vswitch.getTenantId(),
-                            OFPort.OFPP_NONE.getValue());
+                            OFPort.ANY.getShortPortNumber());
                 }
                 this.flowmodMap.clear();
                 this.cookieMap.clear();
                 return false;
             } else {
-                /* remove matching flow entries, and let FlowMod be sent down */
+                // remove matching flow entries, and let FlowMod be sent down((OFFlowMod)fm.getOFMessage()).getMatch()
                 Iterator<Map.Entry<Long, OVXFlowMod>> itr = this.flowmodMap
                         .entrySet().iterator();
                 OVXFlowEntry fe = new OVXFlowEntry();
                 while (itr.hasNext()) {
                     Map.Entry<Long, OVXFlowMod> entry = itr.next();
-                    fe.setFlowMod(entry.getValue());
-                    int overlap = fe.compare(fm.getMatch(), strict);
+                    fe.setOVXFlowMod(entry.getValue());
+                    int overlap = fe.compare(fm.getFlowMod().getMatch(), strict);
                     if (overlap == OVXFlowEntry.EQUAL) {
                         this.cookieMap.remove(entry.getValue().hashCode());
                         itr.remove();
@@ -176,6 +185,8 @@ public class OVXFlowTable implements FlowTable {
         return false;
     }
 
+
+
     /**
      * Adds a flow entry to the FlowTable. The FlowMod is checked for overlap if
      * its flag says so.
@@ -184,19 +195,25 @@ public class OVXFlowTable implements FlowTable {
      * @return true if FlowMod should be written south
      */
     private boolean doFlowModAdd(OVXFlowMod fm) {
-        if ((fm.getFlags() & OFFlowMod.OFPFF_CHECK_OVERLAP) == OFFlowMod.OFPFF_CHECK_OVERLAP) {
+        this.log.debug("doFlowModAdd");
+        //this.log.info(fm.getOFMessage().toString());
+
+
+        if (fm.getFlowMod().getFlags().contains(OFFlowModFlags.CHECK_OVERLAP)){
+            //this.log.info(" OFPFF_CHECK_OVERLAP");
+
             OVXFlowEntry fe = new OVXFlowEntry();
             for (OVXFlowMod fmod : this.flowmodMap.values()) {
-                /*
-                 * if not disjoint AND same priority send up OVERLAP error and
-                 * drop it
-                 */
-                fe.setFlowMod(fmod);
-                int res = fe.compare(fm.getMatch(), false);
+
+                fe.setOVXFlowMod(fmod);
+                int res = fe.compare(fm.getFlowMod().getMatch(), false);
+
+//                this.log.info("res : " + res);
                 if ((res != OVXFlowEntry.DISJOINT)
-                        & (fm.getPriority() == fe.getPriority())) {
+                        & (fm.getFlowMod().getPriority() == fe.getPriority())) {
+
                     this.vswitch.sendMsg(OVXMessageUtil.makeErrorMsg(
-                            OFFlowModFailedCode.OFPFMFC_OVERLAP, fm),
+                            OFFlowModFailedCode.OVERLAP, fm),
                             this.vswitch);
                     return false;
                 }
@@ -205,6 +222,7 @@ public class OVXFlowTable implements FlowTable {
         return doFlowModModify(fm);
     }
 
+
     /**
      * Adds the FlowMod to the table.
      *
@@ -212,27 +230,41 @@ public class OVXFlowTable implements FlowTable {
      * @return true if FlowMod should be written South
      */
     private boolean doFlowModModify(OVXFlowMod fm) {
+        log.debug("doFlowModModify");
+
         OVXFlowEntry fe = new OVXFlowEntry();
         int res;
         for (Map.Entry<Long, OVXFlowMod> fmod : this.flowmodMap.entrySet()) {
-            fe.setFlowMod(fmod.getValue());
-            res = fe.compare(fm.getMatch(), true);
-            /* replace table entry that strictly matches with given FlowMod. */
+            fe.setOVXFlowMod(fmod.getValue());
+
+            log.debug(" FlowEntry [" + U32.of(fe.getOVXFlowMod().hashCode()).toString() + "]");
+
+            log.debug("OVXFlowMod [" + U32.of(fm.hashCode()).toString() + "]");
+
+            res = fe.compare(fm.getFlowMod().getMatch(), true);
+            //replace table entry that strictly matches with given FlowMod.
             if (res == OVXFlowEntry.EQUAL) {
                 long c = fmod.getKey();
-                log.info("replacing equivalent FlowEntry [cookie={}]", c);
+                log.info("replacing equivalent FlowEntry Cookie={}", U64.of(c).toString());
                 OVXFlowMod old = this.flowmodMap.get(c);
+
+                if(old!=null)
+                    log.debug("remove old FlowMod [" + U32.of(old.hashCode()).toString() +"]");
+
                 this.cookieMap.remove(old.hashCode());
                 this.addFlowMod(fm, c);
-                /* return cookie to pool and use the previous cookie */
+                // return cookie to pool and use the previous cookie
                 return true;
             }
         }
         /* make a new cookie, add FlowMod */
         long newc = this.getCookie();
+        log.debug("make a new [cookie={}]", U64.of(newc).toString());
+
         this.addFlowMod(fm.clone(), newc);
         return true;
     }
+
 
     /**
      * Gets a copy of the FlowMod out of the flow table without removing it.
@@ -276,33 +308,38 @@ public class OVXFlowTable implements FlowTable {
      * @return the cookie
      */
     public final long getCookie(OVXFlowMod flowmod, Boolean cflag) {
+
         if (cflag) {
             long cookie = this.getCookie();
             OVXFlowEntry fe = new OVXFlowEntry();
             int res;
             for (Map.Entry<Long, OVXFlowMod> fmod : this.flowmodMap.entrySet()) {
-                fe.setFlowMod(fmod.getValue());
-                res = fe.compare(flowmod.getMatch(), true);
-                /* replace table entry that strictly matches with given FlowMod. */
+                fe.setOVXFlowMod(fmod.getValue());
+                res = fe.compare(flowmod.getFlowMod().getMatch(), true);
+                // replace table entry that strictly matches with given FlowMod.
                 if (res == OVXFlowEntry.EQUAL) {
                     long c = fmod.getKey();
                     log.info(
-                            "replacing equivalent FlowEntry with new [cookie={}]",
-                            cookie);
+                            "replacing equivalent FlowEntry with new [cookie={}->{}]",
+                            U64.of(c).toString(),
+                            U64.of(cookie).toString());
                     OVXFlowMod old = this.flowmodMap.get(c);
                     this.cookieMap.remove(old.hashCode());
                     this.flowmodMap.remove(c);
                     this.addFlowMod(flowmod, cookie);
-                    /* return cookie to pool and use the previous cookie */
+                    // return cookie to pool and use the previous cookie
                     return cookie;
                 }
             }
-
         }
         Long cookie = this.cookieMap.get(flowmod.hashCode());
         if (cookie == null) {
             cookie = this.getCookie();
         }
+        log.debug("getCookie Cookie = " + U64.of(cookie).toString());
+        log.debug("HashCode = " + U32.of(flowmod.hashCode()).toString());
+        log.debug(flowmod.getFlowMod().toString());
+
         return cookie;
     }
 
@@ -314,6 +351,10 @@ public class OVXFlowTable implements FlowTable {
      * @return the cookie
      */
     public long addFlowMod(final OVXFlowMod flowmod, long cookie) {
+        log.debug("addFlowMod Cookie = " + U64.of(cookie).toString());
+        log.debug("HashCode = " + U32.of(flowmod.getFlowMod().hashCode()).toString());
+        log.debug(flowmod.getFlowMod().toString());
+
         this.flowmodMap.put(cookie, flowmod);
         this.cookieMap.put(flowmod.hashCode(), cookie);
         return cookie;
@@ -355,7 +396,7 @@ public class OVXFlowTable implements FlowTable {
             return this.freeList.remove();
         } catch (final NoSuchElementException e) {
             // none in queue - generate new cookie
-            // TODO double-check that there's no duplicate in flowmod map.
+            // TODO double-check that there's no duplicate in ovxFlowMod map.
             final int cookie = this.cookieCounter.getAndIncrement();
             return (long) this.vswitch.getTenantId() << 32 | cookie;
         }
@@ -365,9 +406,10 @@ public class OVXFlowTable implements FlowTable {
      * Dumps the contents of the FlowTable.
      */
     public void dump() {
-        String ret = "";
+        String ret = "\n";
         for (final Map.Entry<Long, OVXFlowMod> fe : this.flowmodMap.entrySet()) {
-            ret += "cookie[" + fe.getKey() + "] :" + fe.getValue().toString()
+            ret += "cookie[" + U64.of(fe.getKey()).toString() + "] HashCode [" + U32.of(fe.getValue().hashCode()).toString() + "] :"
+                    + fe.getValue().getFlowMod().toString()
                     + "\n";
         }
         this.log.info("OVXFlowTable \n========================\n" + ret

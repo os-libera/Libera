@@ -65,8 +65,8 @@ public class GetVirtualLinkMapping extends ApiHandler<Map<String, Object>> {
                 | NetworkMappingException | LinkMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to fetch virtual topology : "
-                            + e.getMessage()), 0);
+                    + ": Unable to fetch virtual topology : "
+                    + e.getMessage()), 0);
         } catch (NullPointerException e) {
             resp = new JSONRPC2Response(new HashMap<Integer, List<Integer>>(),
                     0);

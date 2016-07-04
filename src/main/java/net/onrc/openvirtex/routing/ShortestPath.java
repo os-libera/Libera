@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.routing;
 
@@ -38,7 +47,8 @@ import net.onrc.openvirtex.exceptions.SwitchMappingException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.util.U8;
+import org.projectfloodlight.openflow.types.U8;
+
 
 /**
  * This class implements the Dijkstra Algorithm to compute the shortest path
@@ -170,7 +180,7 @@ public class ShortestPath implements Routable {
      * @return the best link
      */
     private PhysicalLink getBestLink(final PhysicalSwitch node,
-            final PhysicalSwitch target) {
+                                     final PhysicalSwitch target) {
         PhysicalLink bestLink = null;
         for (final PhysicalLink edge : this.edges) {
             if (edge.getSrcSwitch().equals(node)
@@ -262,7 +272,7 @@ public class ShortestPath implements Routable {
      */
     @Override
     public LinkedList<PhysicalLink> computePath(final OVXPort srcPort,
-            final OVXPort dstPort) {
+                                                final OVXPort dstPort) {
         final LinkedList<PhysicalLink> path = this.computePath(srcPort
                 .getPhysicalPort().getParentSwitch(), dstPort.getPhysicalPort()
                 .getParentSwitch());
@@ -279,7 +289,7 @@ public class ShortestPath implements Routable {
      * @return path between two physical switches
      */
     public LinkedList<PhysicalLink> computePath(final PhysicalSwitch srcSw,
-            final PhysicalSwitch dstSw) {
+                                                final PhysicalSwitch dstSw) {
         final LinkedList<PhysicalLink> path = new LinkedList<PhysicalLink>();
         if (srcSw != dstSw) {
             this.execute(srcSw);
@@ -336,7 +346,7 @@ public class ShortestPath implements Routable {
      */
     @Override
     public SwitchRoute getRoute(final OVXBigSwitch vSwitch,
-            final OVXPort srcPort, final OVXPort dstPort) {
+                                final OVXPort srcPort, final OVXPort dstPort) {
         // Check if the route has already been computed
         final ConcurrentHashMap<OVXPort, ConcurrentHashMap<OVXPort, SwitchRoute>> routeMap = vSwitch
                 .getRouteMap();

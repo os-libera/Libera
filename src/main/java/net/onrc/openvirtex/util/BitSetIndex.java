@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.util;
 
@@ -19,13 +28,14 @@ import java.util.BitSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFPort;
-import org.openflow.util.U16;
+
 
 import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.link.OVXLinkField;
 import net.onrc.openvirtex.exceptions.DuplicateIndexException;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
+import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.U16;
 
 public class BitSetIndex {
     private static Logger log = LogManager.getLogger(BitSetIndex.class.getName());
@@ -38,14 +48,16 @@ public class BitSetIndex {
          * When the user request a new id, the class check if an id in the range
          * from 1 to the biggest index is available.
          */
-        TENANT_ID((int) Math.pow(2, OpenVirteXController.getInstance()
-                .getNumberVirtualNets())), SWITCH_ID((int) Math.pow(2, 32)), LINK_ID(
-                getLinkMaxValue()), ROUTE_ID((int) Math.pow(2, 24)), PORT_ID(
-                U16.f(OFPort.OFPP_MAX.getValue())), FLOW_ID((int) Math.pow(2,
-                24)), HOST_ID((int) Math.pow(2, 32)), FLOW_COUNTER(
-                getLinkMaxValue()), IP_ID((int) Math
-                .pow(2, (32 - OpenVirteXController.getInstance()
-                        .getNumberVirtualNets()))), DEFAULT(1000);
+        TENANT_ID((int) Math.pow(2, OpenVirteXController.getInstance().getNumberVirtualNets())),
+        SWITCH_ID((int) Math.pow(2, 32)),
+        LINK_ID(getLinkMaxValue()),
+        ROUTE_ID((int) Math.pow(2, 24)),
+        PORT_ID(U16.f(OFPort.MAX.getShortPortNumber())),
+        FLOW_ID((int) Math.pow(2, 24)),
+        HOST_ID((int) Math.pow(2, 32)),
+        FLOW_COUNTER(getLinkMaxValue()),
+        IP_ID((int) Math.pow(2, (32 - OpenVirteXController.getInstance().getNumberVirtualNets()))),
+        DEFAULT(1000);
 
         protected Integer value;
 

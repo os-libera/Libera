@@ -86,7 +86,7 @@ public class MonitoringHandler extends AbstractHandler implements
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public JSONRPC2Response process(final JSONRPC2Request req,
-            final MessageContext ctxt) {
+                                    final MessageContext ctxt) {
 
         final ApiHandler m = this.handlers.get(req.getMethod());
         if (m != null) {
@@ -95,19 +95,19 @@ public class MonitoringHandler extends AbstractHandler implements
                     && m.getType() != req.getParamsType()) {
                 return new JSONRPC2Response(new JSONRPC2Error(
                         JSONRPC2Error.INVALID_PARAMS.getCode(), req.getMethod()
-                                + " requires: " + m.getType() + "; got: "
-                                + req.getParamsType()), req.getID());
+                        + " requires: " + m.getType() + "; got: "
+                        + req.getParamsType()), req.getID());
             }
 
             switch (m.getType()) {
-            case NO_PARAMS:
-                return m.process(null);
-            case ARRAY:
-                return m.process(req.getPositionalParams());
-            case OBJECT:
-                return m.process(req.getNamedParams());
-            default:
-                break;
+                case NO_PARAMS:
+                    return m.process(null);
+                case ARRAY:
+                    return m.process(req.getPositionalParams());
+                case OBJECT:
+                    return m.process(req.getNamedParams());
+                default:
+                    break;
             }
         }
 

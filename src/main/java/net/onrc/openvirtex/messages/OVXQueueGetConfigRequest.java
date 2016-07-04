@@ -12,28 +12,54 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.port.OVXPort;
 
-import org.openflow.protocol.OFError.OFBadRequestCode;
-import org.openflow.protocol.OFQueueGetConfigRequest;
+import org.projectfloodlight.openflow.exceptions.OFParseError;
+import org.projectfloodlight.openflow.protocol.OFBadRequestCode;
+import org.projectfloodlight.openflow.protocol.OFMessage;
+import org.projectfloodlight.openflow.protocol.OFQueueGetConfigRequest;
 
-public class OVXQueueGetConfigRequest extends OFQueueGetConfigRequest implements
+public class OVXQueueGetConfigRequest extends OVXMessage implements
         Devirtualizable {
 
+    public OVXQueueGetConfigRequest(OFMessage msg) {
+        super(msg);
+    }
+
+    public OFQueueGetConfigRequest getQueueGetConfigRequest() {
+        return (OFQueueGetConfigRequest)this.getOFMessage();
+    }
+
     @Override
-    public void devirtualize(final OVXSwitch sw) {
-        final OVXPort p = sw.getPort(this.getPortNumber());
+    public void devirtualize(final OVXSwitch sw) throws OFParseError {
+        final OVXPort p = sw.getPort(
+                this.getQueueGetConfigRequest().getPort().getShortPortNumber());
         if (p == null) {
-            sw.sendMsg(OVXMessageUtil.makeErrorMsg(
-                    OFBadRequestCode.OFPBRC_EPERM, this), sw);
+            sw.sendMsg(
+                    OVXMessageUtil.makeErrorMsg(OFBadRequestCode.EPERM, this),
+                    sw
+            );
             return;
         }
 
         OVXMessageUtil.translateXid(this, p);
     }
 
+    @Override
+    public int hashCode() {
+        return this.getOFMessage().hashCode();
+    }
 }

@@ -15,7 +15,7 @@
  ******************************************************************************/
 package net.onrc.openvirtex.exceptions;
 
-import org.openflow.protocol.OFError.OFBadActionCode;
+import org.projectfloodlight.openflow.protocol.OFBadActionCode;
 
 public class ActionVirtualizationDenied extends Exception {
 
@@ -24,7 +24,7 @@ public class ActionVirtualizationDenied extends Exception {
     private final OFBadActionCode code;
 
     public ActionVirtualizationDenied(final String msg,
-            final OFBadActionCode code) {
+                                      final OFBadActionCode code) {
         super(msg);
         this.code = code;
     }

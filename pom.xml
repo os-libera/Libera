@@ -105,6 +105,7 @@
               <exclude>org/openflow/**/*.class</exclude>
             </excludes>
           </instrumentation>
+            <check/>
         </configuration>
         <executions>
           <execution>
@@ -247,12 +248,6 @@
         <configuration>
           <effort>${findbugs.effort}</effort>
           <excludeFilterFile>${findbugs.excludeFilterFile}</excludeFilterFile>
-          <reportPlugins>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>findbugs-maven-plugin</artifactId>
-            </plugin>
-          </reportPlugins>
         </configuration>
       </plugin>
       <plugin>
@@ -417,11 +412,18 @@
 	<groupId>commons-lang</groupId>
 	<artifactId>commons-lang</artifactId>
 	<version>2.3</version>
-    </dependency>                
-  </dependencies>
-  <profiles>
-    <!-- Jenkins by default defines a property BUILD_NUMBER which is used to
-      enable the profile. -->
+    </dependency>
+
+             <dependency>
+             <groupId>org.onosproject</groupId>
+             <artifactId>openflowj</artifactId>
+             <version>0.9.2.onos</version>
+         </dependency>
+
+     </dependencies>
+     <profiles>
+       <!-- Jenkins by default defines a property BUILD_NUMBER which is used to
+         enable the profile. -->
     <profile>
       <id>jenkins</id>
       <activation>

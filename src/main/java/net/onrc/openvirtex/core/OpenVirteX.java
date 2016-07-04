@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core;
 
@@ -25,7 +34,7 @@ import org.kohsuke.args4j.CmdLineParser;
 
 public final class OpenVirteX {
 
-    public static final String VERSION = "OpenVirteX-0.0.1";
+    public static final String VERSION = "Libera-0.1";
     private static Logger log = LogManager.getLogger(OpenVirteX.class.getName());
 
     /**
@@ -51,7 +60,7 @@ public final class OpenVirteX {
         }
 
         final OpenVirteXController ctrl = new OpenVirteXController(settings);
-        OpenVirteX.log.info("Starting OpenVirteX...");
+        OpenVirteX.log.info("Starting OpenVirteX...!!!!!!!!!!!!!!");
         ctrl.run();
     }
 

@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
@@ -25,6 +34,7 @@ import net.onrc.openvirtex.elements.Mappable;
 import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
+
 import net.onrc.openvirtex.elements.link.OVXLink;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.network.OVXNetwork;
@@ -34,26 +44,33 @@ import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.routing.SwitchRoute;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFPhysicalPort.OFPortState;
-import org.openflow.protocol.OFPortStatus;
+import org.projectfloodlight.openflow.protocol.*;
 
-public class OVXPortStatus extends OFPortStatus implements Virtualizable {
+public class OVXPortStatus extends OVXMessage implements Virtualizable {
 
     private final Logger log = LogManager.getLogger(OVXPortStatus.class);
 
+    public OVXPortStatus(OFMessage msg){
+        super(msg);
+    }
+
+    public OFPortStatus getPortStatus() { return (OFPortStatus)this.getOFMessage(); }
+
     @Override
     public void virtualize(final PhysicalSwitch sw) {
+       // this.log.info("virtualize");
+
+
         Mappable map = sw.getMap();
-        PhysicalPort p = sw.getPort(this.desc.getPortNumber());
+        PhysicalPort p = sw.getPort(this.getPortStatus().getDesc().getPortNo().getShortPortNumber());
         if (p == null) {
             handlePortAdd(sw, p);
             return;
         }
 
-        log.info("Received {} from switch {}", this.toString(),
+        log.info("Received {} from switch {}", this.getOFMessage().toString(),
                 sw.getSwitchId());
         LinkPair<PhysicalLink> pair = p.getLink();
         try {
@@ -76,18 +93,19 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
                         if (vport == null) {
                             continue;
                         }
-                        if (isReason(OFPortReason.OFPPR_DELETE)) {
+                        if (isReason(OFPortReason.DELETE)) {
                             /* try to remove OVXPort, vLinks, routes */
                             vport.unMapHost();
                             vport.handlePortDelete(this);
                             sw.removePort(p);
-                        } else if (isReason(OFPortReason.OFPPR_MODIFY)) {
-                            if (isState(OFPortState.OFPPS_LINK_DOWN)) {
+                        } else if (isReason(OFPortReason.MODIFY)) {
+                            if (isState(OFPortState.LINK_DOWN)) {
                                 /* set ports as edge, but don't remove vLinks */
                                 vport.handlePortDisable(this);
-                            } else if (!isState(OFPortState.OFPPS_LINK_DOWN)
-                                    && ((p.getState() & OFPortState.OFPPS_LINK_DOWN
-                                            .getValue()) == 0)) {
+                            } else if (!isState(OFPortState.LINK_DOWN)
+                                    && !p.getOfPort().getState().contains(OFPortState.LINK_DOWN)) {
+//!p.getSrcPort().getOfPort().getState().contains(OFPortState.LINK_DOWN)
+                                //plink.getSrcPort().getOfPort().getState().size() == 0)
                                 /*
                                  * set links to non-edge, if it was previously
                                  * disabled
@@ -100,20 +118,22 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
             }
         } catch (NetworkMappingException | LinkMappingException e) {
             log.warn("Couldn't process reason={} for PortStatus for port {}",
-                    this.reason, p.getPortNumber());
+                    this.getPortStatus().getReason().toString(), p.getPortNumber());
             e.printStackTrace();
         }
+
+
     }
 
     /**
      * Adds a new port to the physical switch if add message, quit otherwise.
-     * 
+     *
      * @param sw the physical switch
      * @param p the physical port
      */
     private void handlePortAdd(PhysicalSwitch sw, PhysicalPort p) {
-        if (isReason(OFPortReason.OFPPR_ADD)) {
-            p = new PhysicalPort(this.desc, sw, true);
+        if (isReason(OFPortReason.ADD)) {
+            p = new PhysicalPort(this.getPortStatus().getDesc(), sw, true);
             if (!sw.addPort(p)) {
                 log.warn("Could not add new port {} to physical switch {}",
                         p.getPortNumber(), sw.getSwitchId());
@@ -137,13 +157,13 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
      * @throws NetworkMappingException
      */
     private void handleLinkChange(PhysicalSwitch sw, Mappable map,
-            LinkPair<PhysicalLink> pair, int tid) throws LinkMappingException,
+                                  LinkPair<PhysicalLink> pair, int tid) throws LinkMappingException,
             NetworkMappingException {
         PhysicalLink plink = pair.getOutLink();
 
-        if (!isState(OFPortState.OFPPS_LINK_DOWN)
-                && ((plink.getSrcPort().getState() & OFPortState.OFPPS_LINK_DOWN
-                        .getValue()) == 0)) {
+        if (!isState(OFPortState.LINK_DOWN)
+                && !plink.getSrcPort().getOfPort().getState().contains(OFPortState.LINK_DOWN)) {
+
             OVXNetwork net = map.getVirtualNetwork(tid);
             for (OVXLink link : net.getLinks()) {
                 link.tryRevert(plink);
@@ -163,7 +183,7 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
         if (map.hasOVXLinks(plink, tid)) {
             List<OVXLink> vlinks = map.getVirtualLinks(plink, tid);
             for (OVXLink vlink : vlinks) {
-                if (isReason(OFPortReason.OFPPR_DELETE)) {
+                if (isReason(OFPortReason.DELETE)) {
                     /* couldn't recover, remove link */
                     if (!vlink.tryRecovery(plink)) {
                         OVXPort vport = vlink.getSrcPort();
@@ -172,15 +192,14 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
                         sw.removePort(plink.getSrcPort());
                     }
                 }
-                if (isReason(OFPortReason.OFPPR_MODIFY)) {
-                    if (isState(OFPortState.OFPPS_LINK_DOWN)) {
+                if (isReason(OFPortReason.MODIFY)) {
+                    if (isState(OFPortState.LINK_DOWN)) {
                         /* couldn't recover, remove link */
                         if (!vlink.tryRecovery(plink)) {
                             vlink.getSrcPort().handlePortDisable(this);
                         }
-                    } else if (!isState(OFPortState.OFPPS_LINK_DOWN)
-                            && ((plink.getSrcPort().getState() & OFPortState.OFPPS_LINK_DOWN
-                                    .getValue()) == 0)) {
+                    } else if (!isState(OFPortState.LINK_DOWN)
+                            && !plink.getSrcPort().getOfPort().getState().contains(OFPortState.LINK_DOWN)) {
                         log.debug("enabling OVXLink mapped to port {}");
                         /*
                          * try to switch back to original path, if not just
@@ -201,8 +220,8 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
                  * try to recover, remove route if we fail, but don't send any
                  * stat up
                  */
-                if ((isReason(OFPortReason.OFPPR_DELETE))
-                        || (isReason(OFPortReason.OFPPR_MODIFY) & isState(OFPortState.OFPPS_LINK_DOWN))) {
+                if ((isReason(OFPortReason.DELETE))
+                        || (isReason(OFPortReason.MODIFY) & isState(OFPortState.LINK_DOWN))) {
                     if (!route.tryRecovery(plink)) {
                         route.getSrcPort().handleRouteDisable(this);
                     }
@@ -212,18 +231,22 @@ public class OVXPortStatus extends OFPortStatus implements Virtualizable {
     }
 
     public boolean isReason(OFPortReason reason) {
-        return this.reason == reason.getReasonCode();
+        return this.getPortStatus().getReason() == reason;
     }
 
     public boolean isState(OFPortState state) {
-        return this.desc.getState() == state.getValue();
+        return this.getPortStatus().getDesc().getState().contains(state);
     }
 
     @Override
     public String toString() {
         return "OVXPortStatus: reason["
-                + OFPortReason.fromReasonCode(this.reason).name() + "]"
-                + " port[" + this.desc.getPortNumber() + "]";
+                + this.getPortStatus().getReason().toString() + "]"
+                + " port[" + this.getPortStatus().getDesc().getPortNo().getShortPortNumber() + "]";
     }
 
+    @Override
+    public int hashCode() {
+        return this.getOFMessage().hashCode();
+    }
 }

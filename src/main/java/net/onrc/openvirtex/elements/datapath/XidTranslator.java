@@ -15,7 +15,7 @@
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
-import org.openflow.util.LRULinkedHashMap;
+import org.projectfloodlight.openflow.util.LRULinkedHashMap;
 
 /**
  * Based on Flowvisor XidTranslator by capveg.
@@ -29,6 +29,7 @@ public class XidTranslator<T> {
                                          // mesgs/sec
     int nextID;
     LRULinkedHashMap<Integer, XidPair<T>> xidMap;
+
 
     public XidTranslator() {
         this.nextID = XidTranslator.MIN_XID;

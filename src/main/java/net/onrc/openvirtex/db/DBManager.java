@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.db;
 
@@ -313,7 +322,7 @@ public final class DBManager {
         query.put(TenantHandler.TENANT, tenantId);
         BasicDBObject pull = new BasicDBObject("$pull", new BasicDBObject(
                 SwitchRoute.DB_KEY, new BasicDBObject(TenantHandler.DPID,
-                        switchId)));
+                switchId)));
         PrintStream ps = System.err;
         System.setErr(null);
         try {
@@ -410,7 +419,7 @@ public final class DBManager {
      */
     @SuppressWarnings("unchecked")
     private void readOVXSwitches(List<Map<String, Object>> switches,
-            OVXNetworkManager mngr) {
+                                 OVXNetworkManager mngr) {
         if (switches == null) {
             return;
         }
@@ -439,7 +448,7 @@ public final class DBManager {
      */
     @SuppressWarnings("unchecked")
     private void readOVXLinks(List<Map<String, Object>> links,
-            OVXNetworkManager mngr) {
+                              OVXNetworkManager mngr) {
         if (links == null) {
             return;
         }
@@ -496,7 +505,7 @@ public final class DBManager {
      * @param mngr the virtual network manager
      */
     private void readOVXPorts(List<Map<String, Object>> ports,
-            OVXNetworkManager mngr) {
+                              OVXNetworkManager mngr) {
         if (ports == null) {
             return;
         }
@@ -526,7 +535,7 @@ public final class DBManager {
      */
     @SuppressWarnings({ "unchecked" })
     private void readOVXRoutes(List<Map<String, Object>> routes,
-            OVXNetworkManager mngr) {
+                               OVXNetworkManager mngr) {
         if (routes == null) {
             return;
         }

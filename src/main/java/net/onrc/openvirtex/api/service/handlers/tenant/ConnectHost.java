@@ -30,7 +30,6 @@ import net.onrc.openvirtex.exceptions.InvalidPortException;
 import net.onrc.openvirtex.exceptions.InvalidTenantIdException;
 import net.onrc.openvirtex.exceptions.MissingRequiredField;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
-import net.onrc.openvirtex.util.MACAddress;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import com.thetransactioncompany.jsonrpc2.JSONRPC2Error;
 import com.thetransactioncompany.jsonrpc2.JSONRPC2ParamsType;
 import com.thetransactioncompany.jsonrpc2.JSONRPC2Response;
+import org.projectfloodlight.openflow.types.MacAddress;
 
 public class ConnectHost extends ApiHandler<Map<String, Object>> {
 
@@ -64,7 +64,7 @@ public class ConnectHost extends ApiHandler<Map<String, Object>> {
             final OVXMap map = OVXMap.getInstance();
             final OVXNetwork virtualNetwork = map.getVirtualNetwork(tenantId
                     .intValue());
-            final MACAddress macAddr = MACAddress.valueOf(mac);
+            final MacAddress macAddr = MacAddress.of(mac);
             HandlerUtils.isUniqueHostMAC(macAddr);
             final Host host = virtualNetwork.connectHost(dpid.longValue(),
                     port.shortValue(), macAddr);
@@ -90,16 +90,16 @@ public class ConnectHost extends ApiHandler<Map<String, Object>> {
         } catch (final MissingRequiredField e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to connect host : " + e.getMessage()),
+                    + ": Unable to connect host : " + e.getMessage()),
                     0);
         } catch (final InvalidPortException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Invalid port : " + e.getMessage()), 0);
+                    + ": Invalid port : " + e.getMessage()), 0);
         } catch (final InvalidTenantIdException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Invalid tenant id : " + e.getMessage()), 0);
+                    + ": Invalid tenant id : " + e.getMessage()), 0);
         } catch (final IndexOutOfBoundException e) {
             resp = new JSONRPC2Response(
                     new JSONRPC2Error(
@@ -110,11 +110,11 @@ public class ConnectHost extends ApiHandler<Map<String, Object>> {
         } catch (final NetworkMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": " + e.getMessage()), 0);
+                    + ": " + e.getMessage()), 0);
         } catch (final DuplicateMACException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": " + e.getMessage()), 0);
+                    + ": " + e.getMessage()), 0);
         }
 
         return resp;

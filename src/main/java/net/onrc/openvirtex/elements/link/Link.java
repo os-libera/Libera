@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.link;
 
@@ -174,8 +183,8 @@ public abstract class Link<T1 extends Port, T2 extends Switch> implements
                 this.dstPort.getCurrentThroughput())) {
             // Throughput is expressed in Mbps.
             this.log.debug("Metric for link between {}-{},{}-{} is {}", this
-                    .getSrcSwitch().getSwitchName(), this.srcPort
-                    .getPortNumber(), this.getDstSwitch().getSwitchName(),
+                            .getSrcSwitch().getSwitchName(), this.srcPort
+                            .getPortNumber(), this.getDstSwitch().getSwitchName(),
                     this.dstPort.getPortNumber(), 100000 / this.srcPort
                             .getCurrentThroughput());
             return 100000 / this.srcPort.getCurrentThroughput();

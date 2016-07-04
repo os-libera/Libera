@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements;
 
@@ -31,7 +40,7 @@ import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.routing.SwitchRoute;
-import net.onrc.openvirtex.util.MACAddress;
+import org.projectfloodlight.openflow.types.MacAddress;
 
 public interface Mappable {
     // ADD objects to dictionary
@@ -57,7 +66,7 @@ public interface Mappable {
      * @param virtualSwitch
      */
     public void addSwitches(final List<PhysicalSwitch> physicalSwitches,
-            final OVXSwitch virtualSwitch);
+                            final OVXSwitch virtualSwitch);
 
     /**
      * Create the mapping between PhysicalLinks and a VirtualLink. This function
@@ -68,7 +77,7 @@ public interface Mappable {
      * @param virtualLink
      */
     public void addLinks(final List<PhysicalLink> physicalLinks,
-            final OVXLink virtualLink);
+                         final OVXLink virtualLink);
 
     /**
      * Maintains a list of all the virtualNetworks in the system indexed by the
@@ -86,7 +95,7 @@ public interface Mappable {
      * @param mac the MAC address
      * @param tenantId the tenant ID.
      */
-    public void addMAC(MACAddress mac, Integer tenantId);
+    public void addMAC(MacAddress mac, Integer tenantId);
 
     /**
      * Adds a mapping between a SwitchRoute and the PhysicalLinks making it up.
@@ -95,7 +104,7 @@ public interface Mappable {
      * @param physicalLinks the physical path
      */
     public void addRoute(final SwitchRoute route,
-            final List<PhysicalLink> physicalLinks);
+                         final List<PhysicalLink> physicalLinks);
 
     // Access objects from dictionary given the key
 
@@ -128,7 +137,7 @@ public interface Mappable {
      *         in the OVXNetwork
      */
     public OVXSwitch getVirtualSwitch(PhysicalSwitch physicalSwitch,
-            Integer tenantId) throws SwitchMappingException;
+                                      Integer tenantId) throws SwitchMappingException;
 
     /**
      * Gets the list of OVXLinks that are part of virtual network identified by
@@ -142,7 +151,7 @@ public interface Mappable {
      *         the OVXNetwork
      */
     public List<OVXLink> getVirtualLinks(PhysicalLink physicalLink,
-            Integer tenantId) throws LinkMappingException;
+                                         Integer tenantId) throws LinkMappingException;
 
     /**
      * Get the physicalLinks that all make up a specified virtualLink. Return a
@@ -187,7 +196,7 @@ public interface Mappable {
      * @param mac the MAC address
      * @return tenant ID associated with MAC address
      */
-    public Integer getMAC(MACAddress mac) throws AddressMappingException;
+    public Integer getMAC(MacAddress mac) throws AddressMappingException;
 
     /**
      * Obtains an immutable copy of the list of virtual networks.
@@ -200,7 +209,7 @@ public interface Mappable {
     /**
      * Deletes the OVXNetwork object.
      *
-     * @param OVXNetwork
+     * @param network
      *            network This is object representing the virtual network
      */
     public void removeNetwork(OVXNetwork network);
@@ -208,7 +217,7 @@ public interface Mappable {
     /**
      * Delete the OVXLink object.
      *
-     * @param OVXLink
+     * @param virtualLink
      *            virtualLink This is object representing the virtual link
      */
     public void removeVirtualLink(OVXLink virtualLink);
@@ -216,7 +225,7 @@ public interface Mappable {
     /**
      * Delete the OVXSwitch object.
      *
-     * @param OVXSwitch
+     * @param virtualSwitch
      *            virtualSwitch This is object representing the virtual switch
      */
     public void removeVirtualSwitch(OVXSwitch virtualSwitch);
@@ -234,9 +243,8 @@ public interface Mappable {
      * Removes the MAC address from the map.
      *
      * @param mac the MAC address
-     * @param tenantId the tenant ID
      */
-    public void removeMAC(MACAddress mac);
+    public void removeMAC(MacAddress mac);
 
     /**
      * Gets the current path as a list of physical links for the given route.
@@ -256,7 +264,7 @@ public interface Mappable {
      * @return The routes associated with the supplied PhysicalLink
      */
     public Set<SwitchRoute> getSwitchRoutes(PhysicalLink physicalLink,
-            Integer tenantId) throws LinkMappingException;
+                                            Integer tenantId) throws LinkMappingException;
 
     /**
      * Removes a SwitchRoute from the map.
@@ -306,7 +314,7 @@ public interface Mappable {
      * @param mac the MAC address
      * @return true if the MAC address exists in this map
      */
-    public boolean hasMAC(MACAddress mac);
+    public boolean hasMAC(MacAddress mac);
 
     /**
      * @param physicalLink
@@ -316,7 +324,7 @@ public interface Mappable {
      * @return true if a PhysicalLink maps to any SwitchRoutes
      */
     public boolean hasSwitchRoutes(final PhysicalLink physicalLink,
-            final Integer tenantId);
+                                   final Integer tenantId);
 
     /**
      * @param physicalLink
@@ -326,7 +334,7 @@ public interface Mappable {
      * @return true if a PhysicalLink maps to any OVXLinks
      */
     public boolean hasOVXLinks(final PhysicalLink physicalLink,
-            final Integer tenantId);
+                               final Integer tenantId);
 
     /**
      * @param psw

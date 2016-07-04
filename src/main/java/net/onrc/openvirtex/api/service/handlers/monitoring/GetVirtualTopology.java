@@ -71,12 +71,12 @@ public class GetVirtualTopology extends ApiHandler<Map<String, Object>> {
         } catch (ClassCastException | MissingRequiredField e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to fetch virtual topology : "
-                            + e.getMessage()), 0);
+                    + ": Unable to fetch virtual topology : "
+                    + e.getMessage()), 0);
         } catch (NetworkMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Invalid tenantId : " + tid), 0);
+                    + ": Invalid tenantId : " + tid), 0);
         }
         return resp;
     }

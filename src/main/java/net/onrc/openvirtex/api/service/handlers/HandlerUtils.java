@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.openflow.util.HexString;
-
 import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
@@ -51,7 +49,8 @@ import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.exceptions.VirtualLinkException;
 import net.onrc.openvirtex.routing.SwitchRoute;
-import net.onrc.openvirtex.util.MACAddress;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.util.HexString;
 
 /**
  * Utility class that implements various checks
@@ -68,9 +67,9 @@ public final class HandlerUtils {
 
     @SuppressWarnings("unchecked")
     public static <T> T fetchField(final String fieldName,
-            final Map<String, Object> map,
+                                   final Map<String, Object> map,
             /* Class<T> type, */final boolean required, final T def)
-                    throws ClassCastException, MissingRequiredField {
+            throws ClassCastException, MissingRequiredField {
         final Object field = map.get(fieldName);
         if (field == null) {
             if (required) {
@@ -98,8 +97,8 @@ public final class HandlerUtils {
      * @throws ControllerUnavailableException if controller port and address are already in use
      */
     public static void isControllerAvailable(final String controllerAddress,
-            final int controllerPort, int tenantId)
-                    throws ControllerUnavailableException {
+                                             final int controllerPort, int tenantId)
+            throws ControllerUnavailableException {
         String newCtrl = "";
         String oldCtrl = "";
         try {
@@ -215,7 +214,7 @@ public final class HandlerUtils {
      * @throws NetworkMappingException
      */
     public static void isValidRouteId(final int tenantId, final long dpid,
-            final int routeId) throws InvalidRouteException,
+                                      final int routeId) throws InvalidRouteException,
             NetworkMappingException {
         final OVXMap map = OVXMap.getInstance();
         final OVXNetwork virtualNetwork = map.getVirtualNetwork(tenantId);
@@ -356,7 +355,7 @@ public final class HandlerUtils {
      * @throws NetworkMappingException
      */
     public static void isValidOVXPort(final int tenantId, final long dpid,
-            final short portNumber) throws InvalidPortException,
+                                      final short portNumber) throws InvalidPortException,
             NetworkMappingException {
         final OVXSwitch sw = OVXMap.getInstance().getVirtualNetwork(tenantId)
                 .getSwitch(dpid);
@@ -389,7 +388,7 @@ public final class HandlerUtils {
      * @param mac the MAC address
      * @throws InvalidPriorityException
      */
-    public static void isUniqueHostMAC(final MACAddress mac)
+    public static void isUniqueHostMAC(final MacAddress mac)
             throws DuplicateMACException {
         if (OVXMap.getInstance().hasMAC(mac)) {
             throw new DuplicateMACException(
@@ -409,7 +408,7 @@ public final class HandlerUtils {
      * @throws SwitchMappingException
      */
     public static void isValidPhysicalPort(final int tenantId, final long dpid,
-            final short portNumber) throws InvalidPortException,
+                                           final short portNumber) throws InvalidPortException,
             InvalidDPIDException, SwitchMappingException {
         final PhysicalSwitch sw = PhysicalNetwork.getInstance().getSwitch(dpid);
         if (sw == null || sw.getPort(portNumber) == null) {
@@ -476,9 +475,9 @@ public final class HandlerUtils {
      * @throws VirtualLinkException
      */
     public static void areValidLinkEndPoints(final int tenantId,
-            final long srcDpid, final short ovxSrcPort, final long dstDpid,
-            final short ovxDstPort, final List<PhysicalLink> physicalLinks)
-                    throws NetworkMappingException {
+                                             final long srcDpid, final short ovxSrcPort, final long dstDpid,
+                                             final short ovxDstPort, final List<PhysicalLink> physicalLinks)
+            throws NetworkMappingException {
         OVXNetwork net = OVXMap.getInstance().getVirtualNetwork(tenantId);
         OVXPort srcPort = net.getSwitch(srcDpid).getPort(ovxSrcPort);
         OVXPort dstPort = net.getSwitch(dstDpid).getPort(ovxDstPort);
@@ -486,7 +485,7 @@ public final class HandlerUtils {
                 .equals(physicalLinks.get(0).getSrcPort())) {
             throw new VirtualLinkException(
                     "The virtual link source port and the physical path src port are"
-                    + "not mapped on the same physical port. Virtual port is mapped on: "
+                            + "not mapped on the same physical port. Virtual port is mapped on: "
                             + srcPort.getPhysicalPort().getParentSwitch()
                             .getSwitchName()
                             + "/"
@@ -501,7 +500,7 @@ public final class HandlerUtils {
                 physicalLinks.get(physicalLinks.size() - 1).getDstPort())) {
             throw new VirtualLinkException(
                     "The virtual link destination port and the physical path dst port are"
-                    + "not mapped on the same physical port. Virtual port is mapped on: "
+                            + "not mapped on the same physical port. Virtual port is mapped on: "
                             + dstPort.getPhysicalPort().getParentSwitch()
                             .getSwitchName()
                             + "/"

@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.util;
 
@@ -30,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.common.collect.HashBiMap;
+import org.projectfloodlight.openflow.types.MacAddress;
 
 public class OVXFlowManager {
     static Logger log = LogManager.getLogger(OVXFlowManager.class.getName());
@@ -56,20 +66,20 @@ public class OVXFlowManager {
             flowId = this.flowCounter.getNewIndex();
             log.debug(
                     "virtual net = {}: save flowId = {} that is associated to {} {}",
-                    this.tenantId, flowId, MACAddress.valueOf(srcMac)
-                            .toString(), MACAddress.valueOf(dstMac).toString());
+                    this.tenantId, flowId,
+                    MacAddress.of(srcMac).toString(),
+                    MacAddress.of(dstMac).toString());
             this.flowValues.put(flowId, dualMac);
         }
         return flowId;
     }
 
-    public synchronized LinkedList<MACAddress> getFlowValues(final Integer flowId) {
-        final LinkedList<MACAddress> macList = new LinkedList<MACAddress>();
+    public synchronized LinkedList<MacAddress> getFlowValues(final Integer flowId) {
+        final LinkedList<MacAddress> macList = new LinkedList<MacAddress>();
         final BigInteger dualMac = this.flowValues.get(flowId);
         if (dualMac != null) {
-            final MACAddress srcMac = MACAddress.valueOf(dualMac.shiftRight(48)
-                    .longValue());
-            final MACAddress dstMac = MACAddress.valueOf(dualMac.longValue());
+            final MacAddress srcMac = MacAddress.of(dualMac.shiftRight(48).longValue());
+            final MacAddress dstMac = MacAddress.of(dualMac.longValue());
             macList.add(srcMac);
             macList.add(dstMac);
         }
@@ -84,12 +94,13 @@ public class OVXFlowManager {
         if (flowId != null && flowId != 0) {
             log.debug(
                     "virtual net = {}: retrieving flowId {} that is associated to {} {}",
-                    this.tenantId, flowId, MACAddress.valueOf(srcMac)
-                            .toString(), MACAddress.valueOf(dstMac).toString());
+                    this.tenantId, flowId,
+                    MacAddress.of(srcMac).toString(),
+                    MacAddress.of(dstMac).toString());
             return flowId;
         } else {
             // Create new flow ID
-            // TODO: this is probably incorrect if the match is not identical 
+            // TODO: this is probably incorrect if the match is not identical
             // at both ends of the virtual link
             return this.storeFlowValues(srcMac, dstMac);
         }
@@ -98,8 +109,8 @@ public class OVXFlowManager {
     /**
      * Gets list of all registered MAC addresses in this virtual network.
      */
-    private List<MACAddress> getMACList() {
-        final List<MACAddress> result = new LinkedList<MACAddress>();
+    private List<MacAddress> getMACList() {
+        final List<MacAddress> result = new LinkedList<MacAddress>();
         for (final Host host : this.hostList) {
             result.add(host.getMac());
         }
@@ -107,13 +118,13 @@ public class OVXFlowManager {
     }
 
     public void boot() throws IndexOutOfBoundException {
-        final List<MACAddress> macList = this.getMACList();
-        for (final MACAddress srcMac : macList) {
-            this.storeFlowValues(srcMac.toBytes(),
-                    MACAddress.valueOf("ff:ff:ff:ff:ff:ff").toBytes());
-            for (final MACAddress dstMac : macList) {
-                if (srcMac.toLong() != dstMac.toLong()) {
-                    this.storeFlowValues(srcMac.toBytes(), dstMac.toBytes());
+        final List<MacAddress> macList = this.getMACList();
+        for (final MacAddress srcMac : macList) {
+            this.storeFlowValues(srcMac.getBytes(),
+                    MacAddress.of("ff:ff:ff:ff:ff:ff").getBytes());
+            for (final MacAddress dstMac : macList) {
+                if (srcMac.getLong() != dstMac.getLong()) {
+                    this.storeFlowValues(srcMac.getBytes(), dstMac.getBytes());
                 }
             }
         }

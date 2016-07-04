@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages.statistics;
 
@@ -19,24 +28,20 @@ import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 import net.onrc.openvirtex.messages.OVXStatisticsReply;
 import net.onrc.openvirtex.messages.OVXStatisticsRequest;
+import org.projectfloodlight.openflow.protocol.OFStatsType;
 
-import org.openflow.protocol.statistics.OFVendorStatistics;
-
-public class OVXVendorStatistics extends OFVendorStatistics implements
-        VirtualizableStatistic, DevirtualizableStatistic {
+public class OVXVendorStatistics extends OVXStatistics implements VirtualizableStatistic, DevirtualizableStatistic {
+    public OVXVendorStatistics(OFStatsType t) {
+        super(t);
+    }
 
     @Override
-    public void devirtualizeStatistic(final OVXSwitch sw,
-            final OVXStatisticsRequest msg) {
-        // TODO Auto-generated method stub
+    public void devirtualizeStatistic(final OVXSwitch sw, final OVXStatisticsRequest msg) {
 
     }
 
     @Override
-    public void virtualizeStatistic(final PhysicalSwitch sw,
-            final OVXStatisticsReply msg) {
-        // TODO Auto-generated method stub
+    public void virtualizeStatistic(final PhysicalSwitch sw, final OVXStatisticsReply msg) {
 
     }
-
 }

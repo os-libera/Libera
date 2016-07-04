@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
 
@@ -41,7 +50,7 @@ public class HandshakeTimeoutHandler extends SimpleChannelUpstreamHandler {
     volatile Timeout timeout;
 
     public HandshakeTimeoutHandler(final OFChannelHandler channelHandler,
-            final Timer timer, final long timeoutSeconds) {
+                                   final Timer timer, final long timeoutSeconds) {
         super();
         this.channelHandler = channelHandler;
         this.timer = timer;
@@ -51,7 +60,7 @@ public class HandshakeTimeoutHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void channelOpen(final ChannelHandlerContext ctx,
-            final ChannelStateEvent e) throws Exception {
+                            final ChannelStateEvent e) throws Exception {
         if (this.timeoutNanos > 0) {
             this.timeout = this.timer.newTimeout(new HandshakeTimeoutTask(ctx),
                     this.timeoutNanos, TimeUnit.NANOSECONDS);
@@ -61,7 +70,7 @@ public class HandshakeTimeoutHandler extends SimpleChannelUpstreamHandler {
 
     @Override
     public void channelClosed(final ChannelHandlerContext ctx,
-            final ChannelStateEvent e) throws Exception {
+                              final ChannelStateEvent e) throws Exception {
         if (this.timeout != null) {
             this.timeout.cancel();
             this.timeout = null;

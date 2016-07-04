@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
@@ -25,38 +34,33 @@ import net.onrc.openvirtex.elements.datapath.statistics.StatisticsManager;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
+
 import net.onrc.openvirtex.messages.OVXFlowMod;
+import net.onrc.openvirtex.messages.OVXMessage;
 import net.onrc.openvirtex.messages.OVXStatisticsReply;
 import net.onrc.openvirtex.messages.Virtualizable;
-import net.onrc.openvirtex.messages.statistics.OVXFlowStatisticsReply;
-import net.onrc.openvirtex.messages.statistics.OVXPortStatisticsReply;
-
+import net.onrc.openvirtex.messages.statistics.OVXFlowStatsReply;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.Channel;
-import org.openflow.protocol.OFMessage;
-import org.openflow.protocol.OFPhysicalPort;
-import org.openflow.protocol.OFPort;
-import org.openflow.protocol.OFVendor;
-import org.openflow.protocol.statistics.OFStatistics;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.OFPort;
 
-/**
- * The Class PhysicalSwitch.
- */
 public class PhysicalSwitch extends Switch<PhysicalPort> {
-
     private static Logger log = LogManager.getLogger(PhysicalSwitch.class.getName());
-    // The Xid mapper
+
+        // The Xid mapper
     private final XidTranslator<OVXSwitch> translator;
     private StatisticsManager statsMan = null;
-    private AtomicReference<Map<Short, OVXPortStatisticsReply>> portStats;
-    private AtomicReference<Map<Integer, List<OVXFlowStatisticsReply>>> flowStats;
 
-    /**
-     * Unregisters OVXSwitches and associated virtual elements mapped to this
-     * PhysicalSwitch. Called by unregister() when the PhysicalSwitch is torn
-     * down.
-     */
+    private AtomicReference<Map<Short, OFPortStatsEntry>> portStats;
+
+    //private AtomicReference<Map<Short, OVXPortStatisticsReply>> portStats;
+    //private AtomicReference<Map<Integer, List<OVXFlowStatisticsReply>>> flowStats;
+
+    private AtomicReference<Map<Integer, List<OFFlowStatsEntry>>> flowStats;
+
     class DeregAction implements Runnable {
 
         private PhysicalSwitch psw;
@@ -94,11 +98,14 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      * @param switchId
      *            the switch id
      */
-    public PhysicalSwitch(final long switchId) {
+    public PhysicalSwitch(final long switchId, OFVersion ofv) {
         super(switchId);
         this.translator = new XidTranslator<OVXSwitch>();
-        this.portStats = new AtomicReference<Map<Short, OVXPortStatisticsReply>>();
-        this.flowStats = new AtomicReference<Map<Integer, List<OVXFlowStatisticsReply>>>();
+        this.portStats = new AtomicReference<Map<Short, OFPortStatsEntry>>();
+        this.flowStats = new AtomicReference<Map<Integer, List<OFFlowStatsEntry>>>();
+
+        this.setOfVersion(ofv);
+
         this.statsMan = new StatisticsManager(this);
     }
 
@@ -111,7 +118,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      * @return the virtual port number
      */
     public Short getOVXPortNumber(final Short physicalPortNumber,
-            final Integer tenantId, final Integer vLinkId) {
+                                  final Integer tenantId, final Integer vLinkId) {
         return this.portMap.get(physicalPortNumber)
                 .getOVXPort(tenantId, vLinkId).getPortNumber();
     }
@@ -124,11 +131,11 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      * .OFMessage)
      */
     @Override
-    public void handleIO(final OFMessage msg, Channel channel) {
+    public void handleIO(final OVXMessage msg, Channel channel) {
         try {
             ((Virtualizable) msg).virtualize(this);
         } catch (final ClassCastException e) {
-            PhysicalSwitch.log.error("Received illegal message : " + msg);
+            PhysicalSwitch.log.error("Received illegal message : " + msg.getOFMessage().toString());
         }
     }
 
@@ -150,7 +157,8 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      * Fill port map. Assume all ports are edges until discovery says otherwise.
      */
     protected void fillPortMap() {
-        for (final OFPhysicalPort port : this.featuresReply.getPorts()) {
+        //for (final OFPortDesc port : this.featuresReply.getPorts()) {
+        for (final OFPortDesc port : this.ports) {
             final PhysicalPort physicalPort = new PhysicalPort(port, this, true);
             this.addPort(physicalPort);
         }
@@ -191,7 +199,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     public boolean boot() {
         PhysicalSwitch.log.info("Switch connected with dpid {}, name {} and type {}",
                 this.featuresReply.getDatapathId(), this.getSwitchName(),
-                this.desc.getHardwareDescription());
+                this.desc.getOFMessage().getHwDesc());
         PhysicalNetwork.getInstance().addSwitch(this);
         this.fillPortMap();
         this.statsMan.start();
@@ -216,9 +224,9 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     @Override
-    public void sendMsg(final OFMessage msg, final OVXSendMsg from) {
+    public void sendMsg(final OVXMessage msg, final OVXSendMsg from) {
         if ((this.channel.isOpen()) && (this.isConnected)) {
-            this.channel.write(Collections.singletonList(msg));
+            this.channel.write(Collections.singletonList(msg.getOFMessage()));
         }
     }
 
@@ -233,7 +241,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
                 + this.switchId
                 + ", remoteAddr : "
                 + ((this.channel == null) ? "None" : this.channel
-                        .getRemoteAddress().toString());
+                .getRemoteAddress().toString());
     }
 
     /**
@@ -257,39 +265,38 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
         return false;
     }
 
-    public int translate(final OFMessage ofm, final OVXSwitch sw) {
-        return this.translator.translate(ofm.getXid(), sw);
+    public int translate(final OVXMessage ofm, final OVXSwitch sw) {
+        return this.translator.translate((int)ofm.getOFMessage().getXid(), sw);
     }
 
-    public XidPair<OVXSwitch> untranslate(final OFMessage ofm) {
-        final XidPair<OVXSwitch> pair = this.translator.untranslate(ofm
-                .getXid());
+    public XidPair<OVXSwitch> untranslate(final OVXMessage ofm) {
+        final XidPair<OVXSwitch> pair = this.translator.untranslate((int)ofm.getOFMessage().getXid());
         if (pair == null) {
             return null;
         }
         return pair;
     }
 
-    public void setPortStatistics(Map<Short, OVXPortStatisticsReply> stats) {
+    public void setPortStatistics(Map<Short, OFPortStatsEntry> stats) {
         this.portStats.set(stats);
     }
 
     public void setFlowStatistics(
-            Map<Integer, List<OVXFlowStatisticsReply>> stats) {
+            Map<Integer, List<OFFlowStatsEntry>> stats) {
         this.flowStats.set(stats);
 
     }
 
-    public List<OVXFlowStatisticsReply> getFlowStats(int tid) {
-        Map<Integer, List<OVXFlowStatisticsReply>> stats = this.flowStats.get();
+    public List<OFFlowStatsEntry> getFlowStats(int tid) {
+        Map<Integer, List<OFFlowStatsEntry>> stats = this.flowStats.get();
         if (stats != null && stats.containsKey(tid)) {
             return Collections.unmodifiableList(stats.get(tid));
         }
         return null;
     }
 
-    public OVXPortStatisticsReply getPortStat(short portNumber) {
-        Map<Short, OVXPortStatisticsReply> stats = this.portStats.get();
+    public OFPortStatsEntry getPortStat(short portNumber) {
+        Map<Short, OFPortStatsEntry> stats = this.portStats.get();
         if (stats != null) {
             return stats.get(portNumber);
         }
@@ -301,30 +308,39 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     public void removeFlowMods(OVXStatisticsReply msg) {
-        int tid = msg.getXid() >> 16;
-        short port = (short) (msg.getXid() & 0xFFFF);
-        for (OFStatistics stat : msg.getStatistics()) {
-            OVXFlowStatisticsReply reply = (OVXFlowStatisticsReply) stat;
-            if (tid != this.getTidFromCookie(reply.getCookie())) {
+        OFFlowStatsReply ofStatsReply = (OFFlowStatsReply)msg.getOFMessage();
+
+        int tid = (int)ofStatsReply.getXid() >> 16;
+        short port = (short) (ofStatsReply.getXid() & 0xFFFF);
+
+        for (OFFlowStatsEntry stat : ofStatsReply.getEntries()) {
+            //OVXFlowStatisticsReply2 reply = (OVXFlowStatisticsReply2) stat;
+
+            OVXFlowStatsReply reply = new OVXFlowStatsReply(msg.getOFMessage(), stat);
+
+            if (tid != this.getTidFromCookie(stat.getCookie().getValue())) {
                 continue;
             }
+
             if (port != 0) {
                 sendDeleteFlowMod(reply, port);
-                if (reply.getMatch().getInputPort() == port) {
-                    sendDeleteFlowMod(reply, OFPort.OFPP_NONE.getValue());
+                if (stat.getMatch().get(MatchField.IN_PORT).getShortPortNumber() == port) {
+                    sendDeleteFlowMod(reply, OFPort.ANY.getShortPortNumber());
                 }
             } else {
-                sendDeleteFlowMod(reply, OFPort.OFPP_NONE.getValue());
+                sendDeleteFlowMod(reply, OFPort.ANY.getShortPortNumber());
             }
         }
     }
 
-    private void sendDeleteFlowMod(OVXFlowStatisticsReply reply, short port) {
-        OVXFlowMod dFm = new OVXFlowMod();
-        dFm.setCommand(OVXFlowMod.OFPFC_DELETE_STRICT);
-        dFm.setMatch(reply.getMatch());
-        dFm.setOutPort(port);
-        dFm.setLengthU(OVXFlowMod.MINIMUM_LENGTH);
+    private void sendDeleteFlowMod(OVXFlowStatsReply reply, short port) {
+        OFFlowDeleteStrict ofFlowDeleteStrict = OFFactories.getFactory(reply.getOFMessage().getVersion())
+                .buildFlowDeleteStrict()
+                .setMatch(reply.getOFFlowStatsEntry().getMatch())
+                .setOutPort(OFPort.of(port))
+                .build();
+        OVXFlowMod dFm = new OVXFlowMod(ofFlowDeleteStrict);
+
         this.sendMsg(dFm, this);
     }
 
@@ -333,15 +349,14 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     @Override
-    public void handleRoleIO(OFVendor msg, Channel channel) {
+    public void handleRoleIO(OVXMessage msg, Channel channel) {
         log.warn(
                 "Received Role message {} from switch {}, but no role was requested",
-                msg, this.switchName);
+                msg.getOFMessage().toString(), this.switchName);
     }
 
     @Override
     public void removeChannel(Channel channel) {
 
     }
-
 }

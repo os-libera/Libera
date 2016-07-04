@@ -12,11 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.link;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,22 +48,20 @@ import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.PortMappingException;
 import net.onrc.openvirtex.messages.OVXFlowMod;
-import net.onrc.openvirtex.messages.OVXPacketOut;
-import net.onrc.openvirtex.messages.actions.OVXActionOutput;
-import net.onrc.openvirtex.packet.Ethernet;
+
 import net.onrc.openvirtex.routing.RoutingAlgorithms;
 import net.onrc.openvirtex.routing.RoutingAlgorithms.RoutingType;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFFlowMod;
-import org.openflow.protocol.action.OFAction;
-import org.openflow.protocol.action.OFActionOutput;
-import org.openflow.protocol.action.OFActionType;
-import org.openflow.util.U8;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.*;
 
 /**
  * Implementation of a virtual link, which adds a unique ID, stores the tenant
@@ -95,7 +101,7 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
      *             if one of the ports is invalid
      */
     public OVXLink(final Integer linkId, final Integer tenantId,
-            final OVXPort srcPort, final OVXPort dstPort, RoutingAlgorithms alg)
+                   final OVXPort srcPort, final OVXPort dstPort, RoutingAlgorithms alg)
             throws PortMappingException {
         super(srcPort, dstPort);
         this.linkId = linkId;
@@ -261,27 +267,36 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
 
         this.setPriority(priority);
 
-        Collection<OVXFlowMod> flows = this.getSrcSwitch().getFlowTable()
-                .getFlowTable();
+        Collection<OVXFlowMod> flows = this.getSrcSwitch().getFlowTable().getFlowTable();
         for (OVXFlowMod fe : flows) {
-            for (OFAction act : fe.getActions()) {
+            for (OFAction act : ((OFFlowMod)fe.getOFMessage()).getActions()) {
                 if (act.getType() == OFActionType.OUTPUT) {
-                    if (((OFActionOutput) act).getPort() == this.getSrcPort()
-                            .getPortNumber()) {
+
+                    OFActionOutput temp_act = (OFActionOutput)act;
+
+                    if (temp_act.getPort().getShortPortNumber() == this.getSrcPort().getPortNumber()) {
                         try {
-                            Integer flowId = this.map
+                            Integer flowId;
+
+                            flowId = this.map
                                     .getVirtualNetwork(this.tenantId)
                                     .getFlowManager()
                                     .storeFlowValues(
-                                            fe.getMatch().getDataLayerSource(),
-                                            fe.getMatch()
-                                                    .getDataLayerDestination());
+                                            ((OFFlowMod)fe.getOFMessage()).getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                            ((OFFlowMod)fe.getOFMessage()).getMatch().get(MatchField.ETH_DST).getBytes());
 
                             OVXFlowMod fm = fe.clone();
-                            fm.setCookie(((OVXFlowTable) this.getSrcPort()
-                                    .getParentSwitch().getFlowTable())
-                                    .getCookie(fe, true));
+
+
+                            fm.setOFMessage(
+                                    ((OFFlowMod)fm.getOFMessage()).createBuilder()
+                                                .setCookie(U64.of(((OVXFlowTable) this.getSrcPort().getParentSwitch()
+                                                        .getFlowTable()).getCookie(fe, true)))
+                                                .build()
+                            );
+
                             this.generateLinkFMs(fm, flowId);
+
                         } catch (IndexOutOfBoundException e) {
                             log.error(
                                     "Too many hosts to generate the flow pairs in this virtual network {}. "
@@ -353,14 +368,29 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
          * info are stored 2) change the fields where the physical IPs are
          * stored
          */
-        final OVXLinkUtils lUtils = new OVXLinkUtils(this.tenantId,
-                this.linkId, flowId);
-        lUtils.rewriteMatch(fm.getMatch());
-        long cookie = tenantId;
-        fm.setCookie(cookie << 32);
+        final OVXLinkUtils lUtils = new OVXLinkUtils(this.tenantId, this.linkId, flowId);
 
-        if (fm.getMatch().getDataLayerType() == Ethernet.TYPE_IPV4) {
-            IPMapper.rewriteMatch(this.tenantId, fm.getMatch());
+        fm.modifyMatch(
+                lUtils.rewriteMatch(((OFFlowMod)fm.getOFMessage()).getMatch())
+        );
+
+        long cookie = tenantId;
+
+        fm.setOFMessage(
+                ((OFFlowMod)fm.getOFMessage()).createBuilder()
+                        .setCookie(U64.of(cookie << 32))
+                        .build()
+        );
+
+        //fm.setCookie(cookie << 32);
+
+        if (((OFFlowMod)fm.getOFMessage()).getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
+            fm.modifyMatch(
+                    IPMapper.rewriteMatch(
+                            this.tenantId,
+                            ((OFFlowMod)fm.getOFMessage()).getMatch()
+                    )
+            );
         }
 
         /*
@@ -369,8 +399,13 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
          */
         PhysicalPort inPort = null;
         PhysicalPort outPort = null;
-        fm.setBufferId(OVXPacketOut.BUFFER_ID_NONE);
-        fm.setCommand(OFFlowMod.OFPFC_MODIFY);
+
+        fm.setOFMessage(
+                ((OFFlowMod)fm.getOFMessage()).createBuilder()
+                        .setBufferId(OFBufferId.NO_BUFFER)
+                        .build()
+        );
+
         List<PhysicalLink> plinks = new LinkedList<PhysicalLink>();
         try {
             final OVXLink link = this.map.getVirtualNetwork(this.tenantId)
@@ -390,11 +425,33 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         for (final PhysicalLink phyLink : plinks) {
             if (outPort != null) {
                 inPort = phyLink.getSrcPort();
-                fm.getMatch().setInputPort(inPort.getPortNumber());
-                fm.setLengthU(OVXFlowMod.MINIMUM_LENGTH
-                        + OVXActionOutput.MINIMUM_LENGTH);
-                fm.setActions(Arrays.asList((OFAction) new OFActionOutput(
-                        outPort.getPortNumber(), (short) 0xffff)));
+
+                fm.modifyMatch(
+                        ((OFFlowMod)fm.getOFMessage()).getMatch().createBuilder()
+                                .setExact(MatchField.IN_PORT,
+                                        OFPort.of(inPort.getPortNumber()))
+                                .build()
+                );
+
+                ArrayList<OFAction> actionList = new ArrayList<OFAction>();
+
+                OFActionOutput actionOutput =
+                        OFFactories.getFactory(fm.getOFMessage().getVersion())
+                                .actions().buildOutput()
+                                .setPort(OFPort.of(outPort.getPortNumber()))
+                                .setMaxLen(0xffff)
+                                .build();
+
+                actionList.add(actionOutput);
+
+
+
+                fm.setOFMessage(
+                        ((OFFlowMod)fm.getOFMessage()).createBuilder()
+                                .setActions(actionList)
+                                .build()
+                );
+
                 phyLink.getSrcPort().getParentSwitch()
                         .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
                 this.log.debug(
@@ -483,5 +540,4 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         }
         return true;
     }
-
 }

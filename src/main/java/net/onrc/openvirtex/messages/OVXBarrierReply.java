@@ -12,19 +12,40 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.projectfloodlight.openflow.protocol.OFBarrierReply;
+import org.projectfloodlight.openflow.protocol.OFMessage;
 
-import org.openflow.protocol.OFBarrierReply;
+public class OVXBarrierReply extends OVXMessage implements Virtualizable {
 
-public class OVXBarrierReply extends OFBarrierReply implements Virtualizable {
+    private final Logger log = LogManager.getLogger(OVXBarrierReply.class.getName());
+
+    public OVXBarrierReply(OFMessage msg) {
+
+        super(msg);
+    }
+
+    public OFBarrierReply getBarrierReply() {
+        return (OFBarrierReply)this.getOFMessage();
+    }
 
     @Override
     public void virtualize(final PhysicalSwitch sw) {
-        // TODO Auto-generated method stubP
+       // this.log.info("virtualize");
 
     }
-
 }

@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 /**
  *
@@ -20,7 +29,8 @@ package net.onrc.openvirtex.elements.network;
 
 import net.onrc.openvirtex.elements.address.IPAddress;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
-import net.onrc.openvirtex.util.MACAddress;
+import org.projectfloodlight.openflow.types.MacAddress;
+
 
 /**
  * @author gerola
@@ -32,11 +42,11 @@ public class Uplink {
 
     private IPAddress uplinkIp;
 
-    private MACAddress uplinkMac;
+    private MacAddress uplinkMac;
 
     private IPAddress nextHopIp;
 
-    private MACAddress nectHopMac;
+    private MacAddress nectHopMac;
 
     public PhysicalPort getUplinkPort() {
         return this.uplinkPort;
@@ -54,11 +64,11 @@ public class Uplink {
         this.uplinkIp = uplinkIp;
     }
 
-    public MACAddress getUplinkMac() {
+    public MacAddress getUplinkMac() {
         return this.uplinkMac;
     }
 
-    public void setUplinkMac(final MACAddress uplinkMac) {
+    public void setUplinkMac(final MacAddress uplinkMac) {
         this.uplinkMac = uplinkMac;
     }
 
@@ -70,11 +80,11 @@ public class Uplink {
         this.nextHopIp = nextHopIp;
     }
 
-    public MACAddress getNectHopMac() {
+    public MacAddress getNectHopMac() {
         return this.nectHopMac;
     }
 
-    public void setNectHopMac(final MACAddress nectHopMac) {
+    public void setNectHopMac(final MacAddress nectHopMac) {
         this.nectHopMac = nectHopMac;
     }
 

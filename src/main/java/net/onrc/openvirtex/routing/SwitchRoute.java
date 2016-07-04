@@ -12,31 +12,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.routing;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.Map;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
 import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.Persistable;
 import net.onrc.openvirtex.elements.address.IPMapper;
-import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
-import net.onrc.openvirtex.elements.datapath.OVXFlowTable;
-import net.onrc.openvirtex.elements.datapath.OVXSwitch;
-import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
+import net.onrc.openvirtex.elements.datapath.*;
 import net.onrc.openvirtex.elements.link.Link;
 import net.onrc.openvirtex.elements.link.OVXLink;
 import net.onrc.openvirtex.elements.link.OVXLinkUtils;
@@ -48,30 +41,18 @@ import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.messages.OVXFlowMod;
-import net.onrc.openvirtex.packet.Ethernet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFFlowMod;
-import org.openflow.protocol.OFPacketOut;
-import org.openflow.protocol.OFPort;
-import org.openflow.protocol.action.OFAction;
-import org.openflow.protocol.action.OFActionOutput;
-import org.openflow.protocol.action.OFActionType;
-import org.openflow.util.U8;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.*;
 
-/**
- * This class presents an abstraction for a route within a big switch.
- * A route consists of a virtual switch, the ingress and egress ports on that
- * switch, a priority value, and it has a unique route ID. It stores the mapping
- * to one or more physical paths, each of which have a priority.
- * Several methods are available to create physical paths
- * It also exposes the methods needed to generate and install the flow mods
- * on the physical plane, based on a virtual (controller-generated) flow mod.
- *
- */
-public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements
-Persistable {
+import java.util.*;
+
+public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persistable {
     private static Logger log = LogManager.getLogger(SwitchRoute.class.getName());
     /**
      * Database keyword for switch routes.
@@ -100,7 +81,7 @@ Persistable {
      * @param priority the priority value
      */
     public SwitchRoute(final OVXSwitch sw, final OVXPort in, final OVXPort out,
-            final int routeid, final byte priority) {
+                       final int routeid, final byte priority) {
         super(in, out);
         this.sw = sw;
         this.routeId = routeid;
@@ -201,7 +182,7 @@ Persistable {
      * @param physicalLinks the backup route
      */
     public void addBackupRoute(Byte priority,
-            final List<PhysicalLink> physicalLinks) {
+                               final List<PhysicalLink> physicalLinks) {
         this.backupRoutes.put(priority, physicalLinks);
     }
 
@@ -213,7 +194,7 @@ Persistable {
      * @param physicalLinks the new route
      */
     public void replacePrimaryRoute(Byte priority,
-            final List<PhysicalLink> physicalLinks) {
+                                    final List<PhysicalLink> physicalLinks) {
         // Save the current path in the backup Map
         try {
             this.addBackupRoute(this.getPriority(), OVXMap.getInstance()
@@ -222,7 +203,7 @@ Persistable {
             SwitchRoute.log.error(
                     "Unable to retrieve the list of physical link from the"
                             + "OVXMap associated to the big-switch route {}",
-                            this.getRouteId());
+                    this.getRouteId());
         }
 
         this.switchPath(physicalLinks, priority);
@@ -232,8 +213,8 @@ Persistable {
     public String toString() {
         return "routeId: " + this.routeId + " dpid: " + this.getSwitchId()
                 + " inPort: " + this.srcPort == null ? "" : this.srcPort
-                        .toString() + " outPort: " + this.dstPort == null ? ""
-                                : this.dstPort.toString();
+                .toString() + " outPort: " + this.dstPort == null ? ""
+                : this.dstPort.toString();
     }
 
     @Override
@@ -270,42 +251,55 @@ Persistable {
         SwitchRoute.log.info(
                 "Virtual network {}: switching all existing flow-mods crossing"
                         + "the big-switch {} route {} between ports ({},{}) to the new path: {}",
-                        this.getTenantId(), this.getSrcPort().getParentSwitch()
+                this.getTenantId(), this.getSrcPort().getParentSwitch()
                         .getSwitchName(), this.getRouteId(), this.getSrcPort()
                         .getPortNumber(), this.getDstPort().getPortNumber(),
-                        physicalLinks);
+                physicalLinks);
         Collection<OVXFlowMod> flows = this.getSrcPort().getParentSwitch()
                 .getFlowTable().getFlowTable();
         for (OVXFlowMod fe : flows) {
-            for (OFAction act : fe.getActions()) {
-                if (act.getType() == OFActionType.OUTPUT
-                        && fe.getMatch().getInputPort() == this.getSrcPort()
-                        .getPortNumber()
-                        && ((OFActionOutput) act).getPort() == this
-                        .getDstPort().getPortNumber()) {
-                    SwitchRoute.log.info(
-                            "Virtual network {}, switch {}, route {} between ports {}-{}: switch fm {}",
-                            this.getTenantId(), this.getSrcPort()
-                            .getParentSwitch().getSwitchName(), this
-                            .getRouteId(), this.getSrcPort()
-                            .getPortNumber(), this.getDstPort()
-                            .getPortNumber(), fe);
-                    counter++;
+            for (OFAction act : fe.getFlowMod().getActions()) {
 
-                    OVXFlowMod fm = fe.clone();
-                    fm.setCookie(((OVXFlowTable) this.getSrcPort()
-                            .getParentSwitch().getFlowTable()).getCookie(fe,
-                                    true));
-                    this.generateRouteFMs(fm);
-                    this.generateFirstFM(fm);
+                //check MatchField.IN_PORT
+                if(fe.getFlowMod().getMatch().get(MatchField.IN_PORT) != null) {
+
+                    if (act.getType() == OFActionType.OUTPUT
+                            && fe.getFlowMod().getMatch().get(MatchField.IN_PORT).getShortPortNumber()
+                            == this.getSrcPort().getPortNumber()
+                            && ((OFActionOutput) act).getPort().getShortPortNumber()
+                            == this.getDstPort().getPortNumber()) {
+
+                        SwitchRoute.log.info(
+                                "Virtual network {}, switch {}, route {} between ports {}-{}: switch fm {}",
+                                this.getTenantId(), this.getSrcPort()
+                                        .getParentSwitch().getSwitchName(), this
+                                        .getRouteId(), this.getSrcPort()
+                                        .getPortNumber(), this.getDstPort()
+                                        .getPortNumber(), fe);
+                        counter++;
+
+                        OVXFlowMod fm = fe.clone();
+
+                        fe.setOFMessage(fe.getFlowMod().createBuilder()
+                                .setCookie(U64.of(((OVXFlowTable)this.getSrcPort().getParentSwitch().getFlowTable()).getCookie(fe, true)))
+                                .build()
+                        );
+
+                        //fm.setCookie(U64.of(((OVXFlowTable2)this.getSrcPort().getParentSwitch().getFlowTable()).getCookie(fe, true)));
+
+                        this.generateRouteFMs(fm);
+                        this.generateFirstFM(fm);
+
+                    }
                 }
             }
         }
+
         log.info(
                 "Virtual network {}, switch {}, route {} between ports {}-{}: {} flow-mod switched to the new path",
                 this.getTenantId(), this.getSrcPort().getParentSwitch()
-                .getSwitchName(), this.getRouteId(), this.getSrcPort()
-                .getPortNumber(), this.getDstPort().getPortNumber(),
+                        .getSwitchName(), this.getRouteId(), this.getSrcPort()
+                        .getPortNumber(), this.getDstPort().getPortNumber(),
                 counter);
     }
 
@@ -319,14 +313,9 @@ Persistable {
         // This list includes all the actions that have to be applied at the end
         // of the route
         final LinkedList<OFAction> outActions = new LinkedList<OFAction>();
-        /*
-         * Check the outPort: - if it's an edge, configure the route's last FM
-         * to rewrite the IPs and generate the route FMs - if it's a link: -
-         * retrieve the link - generate the link FMs - configure the route's
-         * last FM to rewrite the MACs - generate the route FMs
-         */
+
         if (this.getDstPort().isEdge()) {
-            outActions.addAll(IPMapper.prependUnRewriteActions(fm.getMatch()));
+            outActions.addAll(IPMapper.prependUnRewriteActions(fm.getFlowMod().getMatch()));
         } else {
             final OVXLink link = this.getDstPort().getLink().getOutLink();
             Integer linkId = link.getLinkId();
@@ -336,42 +325,48 @@ Persistable {
                         .getInstance()
                         .getVirtualNetwork(this.getTenantId())
                         .getFlowManager()
-                        .storeFlowValues(fm.getMatch().getDataLayerSource(),
-                                fm.getMatch().getDataLayerDestination());
+                        .storeFlowValues(
+                                fm.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                fm.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes()
+                        );
                 link.generateLinkFMs(fm.clone(), flowId);
-                outActions.addAll(new OVXLinkUtils(this.getTenantId(), linkId,
-                        flowId).setLinkFields());
+                outActions.addAll(
+                        new OVXLinkUtils(
+                                this.getTenantId(),
+                                linkId,
+                                flowId
+                        ).setLinkFields(fm.getOFMessage().getVersion()));
             } catch (IndexOutOfBoundException e) {
                 SwitchRoute.log.error(
                         "Too many host to generate the flow pairs in this virtual network {}. "
                                 + "Dropping flow-mod {} ", this.getTenantId(),
-                                fm);
+                        fm);
             } catch (NetworkMappingException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
 
-        /*
-         * If the packet has L3 fields (e.g. NOT ARP), change the packet match:
-         * 1) change the fields where the physical ips are stored
-         */
-        if (fm.getMatch().getDataLayerType() == Ethernet.TYPE_IPV4) {
-            IPMapper.rewriteMatch(this.getSrcPort().getTenantId(),
-                    fm.getMatch());
+        if(fm.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
+            fm.modifyMatch(
+                    IPMapper.rewriteMatch(
+                            this.getSrcPort().getTenantId(),
+                            fm.getFlowMod().getMatch()
+                    )
+            );
         }
 
-        /*
-         * Get the list of physical links mapped to this virtual link, in
-         * REVERSE ORDER
-         */
         PhysicalPort inPort = null;
         PhysicalPort outPort = null;
-        fm.setBufferId(OFPacketOut.BUFFER_ID_NONE);
+
+        fm.setOFMessage(fm.getFlowMod().createBuilder()
+                .setBufferId(OFBufferId.NO_BUFFER)
+                .build()
+        );
 
         final SwitchRoute route = ((OVXBigSwitch) this.getSrcPort()
                 .getParentSwitch()).getRoute(this.getSrcPort(),
-                        this.getDstPort());
+                this.getDstPort());
         LinkedList<PhysicalLink> reverseLinks = new LinkedList<>();
         try {
             for (final PhysicalLink phyLink : OVXMap.getInstance().getRoute(
@@ -388,34 +383,51 @@ Persistable {
         for (final PhysicalLink phyLink : reverseLinks) {
             if (outPort != null) {
                 inPort = phyLink.getSrcPort();
-                fm.getMatch().setInputPort(inPort.getPortNumber());
-                fm.setLengthU(OFFlowMod.MINIMUM_LENGTH
-                        + OFActionOutput.MINIMUM_LENGTH);
-                fm.setActions(Arrays.asList((OFAction) new OFActionOutput(
-                        outPort.getPortNumber(), (short) 0xffff)));
+
+                ArrayList<OFAction> actionList = new ArrayList<OFAction>();
+
+                OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                        .actions().buildOutput()
+                        .setPort(OFPort.of(outPort.getPortNumber()))
+                        .setMaxLen(0xffff)
+                        .build();
+
+                actionList.add(actionOutput);
+
+                fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                        .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPortNumber()))
+                        .build());
+
+                fm.setOFMessage(fm.getFlowMod().createBuilder()
+                        .setActions(actionList)
+                        .build());
+
                 phyLink.getSrcPort().getParentSwitch()
-                .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                        .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
                 SwitchRoute.log.debug(
                         "Sending big-switch route intermediate fm to sw {}: {}",
                         phyLink.getSrcPort().getParentSwitch().getName(), fm);
 
             } else {
-                /*
-                 * Last fm. Differs from the others because it can apply
-                 * additional actions to the flow
-                 */
-                fm.getMatch()
-                .setInputPort(phyLink.getSrcPort().getPortNumber());
-                int actLenght = 0;
-                outActions.add(new OFActionOutput(this.getDstPort()
-                        .getPhysicalPortNumber(), (short) 0xffff));
-                fm.setActions(outActions);
-                for (final OFAction act : outActions) {
-                    actLenght += act.getLengthU();
-                }
-                fm.setLengthU(OFFlowMod.MINIMUM_LENGTH + actLenght);
+
+                fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                        .setExact(MatchField.IN_PORT, OFPort.of(phyLink.getSrcPort().getPortNumber()))
+                        .build());
+
+                OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                        .actions().buildOutput()
+                        .setPort(OFPort.of(this.getDstPort().getPhysicalPortNumber()))
+                        .setMaxLen(0xffff)
+                        .build();
+
+                outActions.add(actionOutput);
+
+                fm.setOFMessage(fm.getFlowMod().createBuilder()
+                        .setActions(outActions)
+                        .build());
+
                 phyLink.getSrcPort().getParentSwitch()
-                .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                        .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
                 SwitchRoute.log.debug("Sending big-switch route last fm to sw {}: {}",
                         phyLink.getSrcPort().getParentSwitch().getName(), fm);
             }
@@ -438,7 +450,11 @@ Persistable {
      * @param fm the virtual flow mod
      */
     private void generateFirstFM(OVXFlowMod fm) {
-        fm.setBufferId(OFPacketOut.BUFFER_ID_NONE);
+        fm.setOFMessage(fm.getFlowMod().createBuilder()
+                .setBufferId(OFBufferId.NO_BUFFER)
+                .build()
+        );
+
         final List<OFAction> approvedActions = new LinkedList<OFAction>();
         if (this.getSrcPort().isLink()) {
             OVXPort dstPort = null;
@@ -458,8 +474,10 @@ Persistable {
                             .getInstance()
                             .getVirtualNetwork(this.getTenantId())
                             .getFlowManager()
-                            .getFlowId(fm.getMatch().getDataLayerSource(),
-                                    fm.getMatch().getDataLayerDestination());
+                            .getFlowId(
+                                    fm.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                    fm.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes()
+                            );
                 } catch (NetworkMappingException e) {
                     SwitchRoute.log.warn(
                             "Error retrieving the network with id {} for flowMod {}. Dropping packet...",
@@ -474,13 +492,14 @@ Persistable {
                     log.error(
                             "Too many host to generate the flow pairs in this virtual network {}. "
                                     + "Dropping flow-mod {} ",
-                                    sw.getTenantId(), fm);
+                            sw.getTenantId(), fm);
                     return;
                 }
                 OVXLinkUtils lUtils = new OVXLinkUtils(this.getTenantId(), link.getLinkId(), flowId);
-                lUtils.rewriteMatch(fm.getMatch());
-                IPMapper.rewriteMatch(this.getTenantId(), fm.getMatch());
-                approvedActions.addAll(lUtils.unsetLinkFields(false, false));
+                fm.modifyMatch(lUtils.rewriteMatch(fm.getFlowMod().getMatch()));
+                fm.modifyMatch(IPMapper.rewriteMatch(this.getTenantId(), fm.getFlowMod().getMatch()));
+
+                approvedActions.addAll(lUtils.unsetLinkFields(false, false, fm.getOFMessage().getVersion()));
             } else {
                 SwitchRoute.log.warn(
                         "Cannot retrieve the virtual link between ports {} {}. Dropping packet...",
@@ -489,29 +508,39 @@ Persistable {
             }
         } else {
             approvedActions.addAll(IPMapper.prependRewriteActions(
-                    this.getTenantId(), fm.getMatch()));
+                    this.getTenantId(), fm.getFlowMod().getMatch()));
         }
 
-        fm.getMatch().setInputPort(this.getSrcPort().getPhysicalPortNumber());
+        fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                .setExact(MatchField.IN_PORT, OFPort.of(this.getSrcPort().getPhysicalPortNumber()))
+                .build()
+        );
+
+
 
         // add the output action with the physical outPort (srcPort of the
         // route)
         if (this.getSrcPort().getPhysicalPortNumber() != this.getPathSrcPort()
                 .getPortNumber()) {
-            approvedActions.add(new OFActionOutput(this.getPathSrcPort()
-                    .getPortNumber()));
+
+            approvedActions.add(OFFactories.getFactory(fm.getOFMessage().getVersion())
+                    .actions().buildOutput()
+                    .setPort(OFPort.of(this.getPathSrcPort().getPortNumber()))
+                    .setMaxLen(0xffff)
+                    .build());
         } else {
-            approvedActions.add(new OFActionOutput(OFPort.OFPP_IN_PORT
-                    .getValue()));
+            approvedActions.add(OFFactories.getFactory(fm.getOFMessage().getVersion())
+                    .actions().buildOutput()
+                    .setPort(OFPort.IN_PORT)
+                    .setMaxLen(0xffff)
+                    .build());
         }
 
-        fm.setCommand(OFFlowMod.OFPFC_MODIFY);
-        fm.setActions(approvedActions);
-        int actLenght = 0;
-        for (final OFAction act : approvedActions) {
-            actLenght += act.getLengthU();
-        }
-        fm.setLengthU(OFFlowMod.MINIMUM_LENGTH + actLenght);
+
+        fm.setOFMessage(fm.getFlowMod().createBuilder()
+                .setActions(approvedActions)
+                .build());
+
         this.getSrcSwitch().sendMsg(fm, this.getSrcSwitch());
         SwitchRoute.log.debug("Sending big-switch route first fm to sw {}: {}", this
                 .getSrcSwitch().getName(), fm);
@@ -584,14 +613,13 @@ Persistable {
         log.info(
                 "Try recovery for virtual network {} big-switch {} internal route {} between ports"
                         + "({},{}) in virtual network {} ",
-                        this.getTenantId(), this.getSrcPort().getParentSwitch()
+                this.getTenantId(), this.getSrcPort().getParentSwitch()
                         .getSwitchName(), this.routeId, this.getSrcPort()
                         .getPortNumber(), this.getDstPort().getPortNumber(),
-                        this.getTenantId());
+                this.getTenantId());
         if (this.backupRoutes.size() > 0) {
             try {
-                List<PhysicalLink> unusableLinks = new ArrayList<>(OVXMap
-                        .getInstance().getRoute(this));
+                List<PhysicalLink> unusableLinks = new ArrayList<>(OVXMap.getInstance().getRoute(this));
                 Collections.copy(unusableLinks,
                         OVXMap.getInstance().getRoute(this));
                 this.unusableRoutes.put(this.getPriority(), unusableLinks);
@@ -643,7 +671,7 @@ Persistable {
                 log.info(
                         "Reactivate all inactive paths for virtual network {} big-switch {}"
                                 + "internal route {} between ports ({},{}) in virtual network {} ",
-                                this.getTenantId(), this.getSrcPort().getParentSwitch()
+                        this.getTenantId(), this.getSrcPort().getParentSwitch()
                                 .getSwitchName(), this.routeId, this
                                 .getSrcPort().getPortNumber(), this
                                 .getDstPort().getPortNumber(), this
@@ -655,8 +683,7 @@ Persistable {
                 } else {
 
                     try {
-                        List<PhysicalLink> backupLinks = new ArrayList<>(OVXMap
-                                .getInstance().getRoute(this));
+                        List<PhysicalLink> backupLinks = new ArrayList<>(OVXMap.getInstance().getRoute(this));
                         Collections.copy(backupLinks, OVXMap.getInstance()
                                 .getRoute(this));
                         this.backupRoutes.put(this.getPriority(), backupLinks);

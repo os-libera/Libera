@@ -12,17 +12,28 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
 
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
-import org.openflow.protocol.OFMessage;
+import org.projectfloodlight.openflow.protocol.OFMessage;
 
 /**
  * encode an openflow message into a netty Channel.
@@ -31,16 +42,18 @@ import org.openflow.protocol.OFMessage;
  */
 public class OVXMessageEncoder extends OneToOneEncoder {
 
+    Logger log = LogManager.getLogger(OVXMessageEncoder.class.getName());
+
     @Override
     protected Object encode(final ChannelHandlerContext ctx,
-            final Channel channel, final Object msg) throws Exception {
+                            final Channel channel, final Object msg) throws Exception {
         if (!(msg instanceof List)) {
             return msg;
         }
 
         @SuppressWarnings("unchecked")
         final List<OFMessage> msglist = (List<OFMessage>) msg;
-        int size = 0;
+        /*int size = 0;
         for (final OFMessage ofm : msglist) {
             size += ofm.getLengthU();
         }
@@ -51,7 +64,17 @@ public class OVXMessageEncoder extends OneToOneEncoder {
 
             ofm.writeTo(buf);
 
+        }*/
+        ChannelBuffer buf = ChannelBuffers.dynamicBuffer();
+
+        for (OFMessage ofm : msglist) {
+            if (ofm != null) {
+                //this.log.info(ofm.toString());
+
+                ofm.writeTo(buf);
+            }
         }
+
         return buf;
     }
 

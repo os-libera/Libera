@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.packet;
 
@@ -72,7 +81,7 @@ public class OVXLLDP extends LLDP {
 
     private static final byte DPID_TLV_TYPE = 127;
     private static final byte DPID_TLV_SIZE = (byte) (12); // 12 = OUI (3) + subtype
-                                                     // (1) + dpid (8)
+    // (1) + dpid (8)
     private static final byte DPID_TLV_SUBTYPE = 2;
     private static final short DPID_TLV_HEADER = (short) ((DPID_TLV_TYPE << 9) | DPID_TLV_SIZE);
     // Contents of dpid TLV
@@ -87,7 +96,7 @@ public class OVXLLDP extends LLDP {
 
     // Default switch, port number and TTL
     private static final byte[] DEFAULT_DPID = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00 };
+                                                0x00, 0x00 };
     private static final short DEFAULT_PORT = 0;
     private static final short DEFAULT_TTL = 120; // in seconds
 

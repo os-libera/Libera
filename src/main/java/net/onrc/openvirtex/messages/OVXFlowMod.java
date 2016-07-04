@@ -12,13 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import net.onrc.openvirtex.elements.address.IPMapper;
 import net.onrc.openvirtex.elements.datapath.FlowTable;
@@ -27,28 +33,21 @@ import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.link.OVXLink;
 import net.onrc.openvirtex.elements.link.OVXLinkUtils;
 import net.onrc.openvirtex.elements.port.OVXPort;
-import net.onrc.openvirtex.exceptions.ActionVirtualizationDenied;
-import net.onrc.openvirtex.exceptions.DroppedMessageException;
-import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
-import net.onrc.openvirtex.exceptions.NetworkMappingException;
-import net.onrc.openvirtex.exceptions.UnknownActionException;
-import net.onrc.openvirtex.messages.actions.OVXActionNetworkLayerDestination;
-import net.onrc.openvirtex.messages.actions.OVXActionNetworkLayerSource;
-import net.onrc.openvirtex.messages.actions.VirtualizableAction;
-import net.onrc.openvirtex.packet.Ethernet;
+import net.onrc.openvirtex.exceptions.*;
+import net.onrc.openvirtex.messages.actions.*;
 import net.onrc.openvirtex.protocol.OVXMatch;
 import net.onrc.openvirtex.util.OVXUtil;
+import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.action.OFAction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFError.OFFlowModFailedCode;
-import org.openflow.protocol.OFFlowMod;
-import org.openflow.protocol.OFMatch;
-import org.openflow.protocol.Wildcards.Flag;
-import org.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
+import org.projectfloodlight.openflow.protocol.match.Match;
+import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.*;
 
-public class OVXFlowMod extends OFFlowMod implements Devirtualizable {
-
+public class OVXFlowMod extends OVXMessage implements Devirtualizable {
 
     private final Logger log = LogManager.getLogger(OVXFlowMod.class.getName());
 
@@ -57,72 +56,122 @@ public class OVXFlowMod extends OFFlowMod implements Devirtualizable {
 
     private long ovxCookie = -1;
 
+    public OVXFlowMod(OFMessage msg) {
+        super(msg);
+    }
+
+    public OFFlowMod getFlowMod() {
+        return (OFFlowMod)this.getOFMessage();
+    }
+
     @Override
     public void devirtualize(final OVXSwitch sw) {
-        /* Drop LLDP-matching messages sent by some applications */
-        if (this.match.getDataLayerType() == Ethernet.TYPE_LLDP) {
+        this.log.debug("devirtualize");
+        //this.log.info(this.getFlowMod().toString());
+        //this.log.info(this.getOFMessage().toString());
+
+
+
+         /* Drop LLDP-matching messages sent by some applications */
+        if (this.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.LLDP) {
             return;
         }
 
         this.sw = sw;
         FlowTable ft = this.sw.getFlowTable();
 
-        int bufferId = OVXPacketOut.BUFFER_ID_NONE;
-        if (sw.getFromBufferMap(this.bufferId) != null) {
-            bufferId = sw.getFromBufferMap(this.bufferId).getBufferId();
+        int bufferId = OFBufferId.NO_BUFFER.getInt();
+        if (sw.getFromBufferMap(this.getFlowMod().getBufferId().getInt()) != null) {
+            bufferId = ((OFPacketIn)sw.getFromBufferMap(this.getFlowMod().getBufferId().getInt()).getOFMessage())
+                    .getBufferId().getInt();
         }
-        final short inport = this.getMatch().getInputPort();
+        //OFMatch에서 inport의 기본값은 0으로 설정되기 때문, 그러나 OpenFlowj에서는 MatchField가 존재하지 않으면
+        //필드 자체가 없기 때문에 inport값을 알 수 없다.
+        //ONOS인 경우 스위치가 연결되면 기본적인 설정 FlowMod 메시지를 보낸다(ARP, LLDP, IPv4정보를 Controller로 보내는 설정)
+        //거기엔 in_port 정보가 없다 추후 이부분의 루틴 구현해야함
 
-        /* let flow table process FlowMod, generate cookie as needed */
+        /*if(!((OFFlowMod)this.getOFMessage()).getMatch().isExact(MatchField.IN_PORT)) {
+            this.log.info("No IN_PORT in MatchField");
+            return;
+        }*/
+
+        short inport = 0;
+
+        if(this.getFlowMod().getMatch().get(MatchField.IN_PORT) != null)
+        {
+           inport = this.getFlowMod().getMatch()
+                   .get(MatchField.IN_PORT).getShortPortNumber();
+        }
         boolean pflag = ft.handleFlowMods(this.clone());
 
-        /* used by OFAction virtualization */
-        OVXMatch ovxMatch = new OVXMatch(this.match);
-        ovxCookie = ((OVXFlowTable) ft).getCookie(this, false);
-        ovxMatch.setCookie(ovxCookie);
-        this.setCookie(ovxMatch.getCookie());
 
-        for (final OFAction act : this.getActions()) {
+        //((OVXFlowTable) ft).dump();
+
+
+        OVXMatch ovxMatch = new OVXMatch(this.getFlowMod().getMatch());
+        ovxCookie = ((OVXFlowTable) ft).getCookie(this, false);
+
+        ovxMatch.setCookie(ovxCookie);
+
+        this.setOFMessage(this.getFlowMod().createBuilder()
+                .setCookie(U64.of(ovxMatch.getCookie()))
+                .build()
+        );
+
+        for (final OFAction act : this.getFlowMod().getActions()) {
             try {
-                ((VirtualizableAction) act).virtualize(sw,
-                        this.approvedActions, ovxMatch);
+                OVXAction action2 = OVXActionUtil.wrappingOVXAction(act);
+
+                ((VirtualizableAction) action2).virtualize(sw,this.approvedActions, ovxMatch);
             } catch (final ActionVirtualizationDenied e) {
-                this.log.warn("Action {} could not be virtualized; error: {}",
+                this.log.debug("Action {} could not be virtualized; error: {}",
                         act, e.getMessage());
                 ft.deleteFlowMod(ovxCookie);
                 sw.sendMsg(OVXMessageUtil.makeError(e.getErrorCode(), this), sw);
                 return;
             } catch (final DroppedMessageException e) {
-                this.log.warn("Dropping flowmod {} {}", this, e);
+                this.log.debug("Dropping ovxFlowMod {} {}", this.getOFMessage().toString(), e);
                 ft.deleteFlowMod(ovxCookie);
                 // TODO perhaps send error message to controller
+                return;
+            } catch (final NullPointerException e) {
+                this.log.debug("Action {} could not be supported", act);
                 return;
             }
         }
 
         final OVXPort ovxInPort = sw.getPort(inport);
-        this.setBufferId(bufferId);
+
+        this.setOFMessage(this.getFlowMod().createBuilder()
+                .setBufferId(OFBufferId.of(bufferId))
+                .build()
+        );
 
         if (ovxInPort == null) {
-            if (this.match.getWildcardObj().isWildcarded(Flag.IN_PORT)) {
-                /* expand match to all ports */
+            if(this.getFlowMod().getMatch().isFullyWildcarded(MatchField.IN_PORT)) {
+
                 for (OVXPort iport : sw.getPorts().values()) {
-                    int wcard = this.match.getWildcards()
-                            & (~OFMatch.OFPFW_IN_PORT);
-                    this.match.setWildcards(wcard);
                     prepAndSendSouth(iport, pflag);
                 }
             } else {
                 this.log.error(
-                        "Unknown virtual port id {}; dropping flowmod {}",
+                        "Unknown virtual port id {}; dropping ovxFlowMod {}",
                         inport, this);
-                sw.sendMsg(OVXMessageUtil.makeErrorMsg(
-                        OFFlowModFailedCode.OFPFMFC_EPERM, this), sw);
+                sw.sendMsg(OVXMessageUtil.makeErrorMsg(OFFlowModFailedCode.EPERM, this), sw);
                 return;
             }
         } else {
             prepAndSendSouth(ovxInPort, pflag);
         }
+
+    }
+
+    public void modifyMatch(Match match)
+    {
+        this.setOFMessage(this.getFlowMod().createBuilder()
+                .setMatch(match)
+                .build()
+        );
     }
 
     private void prepAndSendSouth(OVXPort inPort, boolean pflag) {
@@ -132,45 +181,73 @@ public class OVXFlowMod extends OFFlowMod implements Devirtualizable {
                     sw.getSwitchName());
             return;
         }
-        this.getMatch().setInputPort(inPort.getPhysicalPortNumber());
+
+        this.modifyMatch(
+                OVXMessageUtil.updateMatch(
+                        this.getFlowMod().getMatch(),
+                        this.getFlowMod().getMatch().createBuilder()
+                                .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                .build()
+                )
+        );
+
         OVXMessageUtil.translateXid(this, inPort);
         try {
             if (inPort.isEdge()) {
                 this.prependRewriteActions();
             } else {
-                IPMapper.rewriteMatch(sw.getTenantId(), this.match);
+                this.modifyMatch(
+                        IPMapper.rewriteMatch(
+                                sw.getTenantId(),
+                                this.getFlowMod().getMatch()
+                        )
+                );
+
                 // TODO: Verify why we have two send points... and if this is
                 // the right place for the match rewriting
                 if (inPort != null
                         && inPort.isLink()
-                        && (!this.match.getWildcardObj().isWildcarded(
-                                Flag.DL_DST) || !this.match.getWildcardObj()
-                                .isWildcarded(Flag.DL_SRC))) {
+                        && this.getFlowMod().getMatch().get(MatchField.ETH_DST) != null
+                        && this.getFlowMod().getMatch().get(MatchField.ETH_SRC) != null
+                ) {
                     // rewrite the OFMatch with the values of the link
                     OVXPort dstPort = sw.getMap()
                             .getVirtualNetwork(sw.getTenantId())
                             .getNeighborPort(inPort);
+
                     OVXLink link = sw.getMap()
                             .getVirtualNetwork(sw.getTenantId())
                             .getLink(dstPort, inPort);
+
                     if (inPort != null && link != null) {
                         try {
-                            Integer flowId = sw
-                                    .getMap()
+
+                            Integer flowId = sw.getMap()
                                     .getVirtualNetwork(sw.getTenantId())
                                     .getFlowManager()
-                                    .getFlowId(this.match.getDataLayerSource(),
-                                            this.match.getDataLayerDestination());
+                                    .getFlowId(
+                                            this.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                            this.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes()
+                                    );
+
+
                             OVXLinkUtils lUtils = new OVXLinkUtils(
                                     sw.getTenantId(), link.getLinkId(), flowId);
-                            lUtils.rewriteMatch(this.getMatch());
+
+                            this.log.debug("before " + this.getFlowMod().getMatch().toString());
+
+                            this.modifyMatch(
+                                    lUtils.rewriteMatch(this.getFlowMod().getMatch())
+                            );
+
+                            this.log.debug("after " + this.getFlowMod().getMatch().toString());
                         } catch (IndexOutOfBoundException e) {
                             log.error(
                                     "Too many host to generate the flow pairs in this virtual network {}. "
                                             + "Dropping flow-mod {} ",
-                                            sw.getTenantId(), this);
+                                    sw.getTenantId(), this);
                             throw new DroppedMessageException();
-                        } 
+                        }
                     }
                 }
             }
@@ -183,63 +260,86 @@ public class OVXFlowMod extends OFFlowMod implements Devirtualizable {
                     "OVXFlowMod. Error retrieving flowId in network with id {} for flowMod {}. Dropping packet...",
                     this.sw.getTenantId(), this);
         }
-        this.computeLength();
+
+        this.setOFMessage(this.getFlowMod().createBuilder()
+                .setActions(this.approvedActions)
+                .build()
+        );
+
         if (pflag) {
-            this.flags |= OFFlowMod.OFPFF_SEND_FLOW_REM;
+
+            if(!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
+                this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);
+
             sw.sendSouth(this, inPort);
         }
     }
 
-    private void computeLength() {
-        this.setActions(this.approvedActions);
-        this.setLengthU(OVXFlowMod.MINIMUM_LENGTH);
-        for (final OFAction act : this.approvedActions) {
-            this.setLengthU(this.getLengthU() + act.getLengthU());
-        }
-    }
-
     private void prependRewriteActions() {
-        if (!this.match.getWildcardObj().isWildcarded(Flag.NW_SRC)) {
-            final OVXActionNetworkLayerSource srcAct = new OVXActionNetworkLayerSource();
-            srcAct.setNetworkAddress(IPMapper.getPhysicalIp(sw.getTenantId(),
-                    this.match.getNetworkSource()));
-            this.approvedActions.add(0, srcAct);
+        if(this.getOFMessage().getVersion() == OFVersion.OF_10)
+            prependRewriteActionsVer10();
+        else
+            prependRewriteActionsVer13();
+
+    }
+
+    private void prependRewriteActionsVer13() {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
+            OFActionSetField ofActionSetField = this.factory.actions().buildSetField()
+                    .setField(this.factory.oxms().ipv4Src(IPv4Address.of(
+                            IPMapper.getPhysicalIp(
+                                    sw.getTenantId(),
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt()))))
+                    .build();
+            this.approvedActions.add(0, ofActionSetField);
         }
 
-        if (!this.match.getWildcardObj().isWildcarded(Flag.NW_DST)) {
-            final OVXActionNetworkLayerDestination dstAct = new OVXActionNetworkLayerDestination();
-            dstAct.setNetworkAddress(IPMapper.getPhysicalIp(sw.getTenantId(),
-                    this.match.getNetworkDestination()));
-            this.approvedActions.add(0, dstAct);
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
+            OFActionSetField ofActionSetField = this.factory.actions().buildSetField()
+                    .setField(this.factory.oxms().ipv4Dst(IPv4Address.of(
+                            IPMapper.getPhysicalIp(
+                                    sw.getTenantId(),
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_DST).getInt()))))
+                    .build();
+            this.approvedActions.add(0, ofActionSetField);
         }
     }
 
-    /**
-     * @param flagbit
-     *            The OFFlowMod flag
-     * @return true if the flag is set
-     */
-    public boolean hasFlag(short flagbit) {
-        return (this.flags & flagbit) == flagbit;
+    private void prependRewriteActionsVer10() {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
+            OFAction action = this.factory.actions().buildSetNwSrc()
+                            .setNwAddr(IPv4Address.of(
+                                    IPMapper.getPhysicalIp(
+                                            sw.getTenantId(),
+                                            this.getFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt())))
+                            .build();
+
+            this.approvedActions.add(0, action);
+        }
+
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
+            OFAction action = this.factory.actions().buildSetNwDst()
+                            .setNwAddr(IPv4Address.of(
+                                    IPMapper.getPhysicalIp(sw.getTenantId(),
+                                            this.getFlowMod().getMatch().get(MatchField.IPV4_DST).getInt())))
+                            .build();
+
+            this.approvedActions.add(0, action);
+        }
     }
 
     public OVXFlowMod clone() {
-        OVXFlowMod flowMod = null;
-        try {
-            flowMod = (OVXFlowMod) super.clone();
-        } catch (CloneNotSupportedException e) {
-            log.error("Error cloning flowMod: {}", this);
-        }
+        OVXFlowMod flowMod = new OVXFlowMod(this.getOFMessage().createBuilder().build());
         return flowMod;
     }
 
     public Map<String, Object> toMap() {
         final Map<String, Object> map = new LinkedHashMap<String, Object>();
-        if (this.match != null) {
-            map.put("match", new OVXMatch(match).toMap());
+        if (this.getFlowMod().getMatch() != null) {
+            map.put("match", new OVXMatch(this.getFlowMod().getMatch()).toMap());
         }
         LinkedList<Map<String, Object>> actions = new LinkedList<Map<String, Object>>();
-        for (OFAction act : this.actions) {
+        for (OFAction act : this.getFlowMod().getActions()) {
             try {
                 actions.add(OVXUtil.actionToMap(act));
             } catch (UnknownActionException e) {
@@ -247,15 +347,12 @@ public class OVXFlowMod extends OFFlowMod implements Devirtualizable {
             }
         }
         map.put("actionsList", actions);
-        map.put("priority", String.valueOf(this.priority));
+        map.put("priority", String.valueOf(this.getFlowMod().getPriority()));
         return map;
     }
 
-    public void setVirtualCookie() {
-        long tmp = this.ovxCookie;
-        this.ovxCookie = this.cookie;
-        this.cookie = tmp;
+    @Override
+    public int hashCode() {
+        return this.getOFMessage().hashCode();
     }
-
-
 }

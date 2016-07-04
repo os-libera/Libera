@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.port;
 
@@ -26,7 +35,7 @@ public class PhysicalPortSerializer implements JsonSerializer<PhysicalPort> {
 
     @Override
     public JsonElement serialize(final PhysicalPort port, final Type portType,
-            final JsonSerializationContext context) {
+                                 final JsonSerializationContext context) {
         final JsonObject result = new JsonObject();
         result.addProperty("dpid", port.getParentSwitch().getSwitchName());
         result.addProperty("port", String.valueOf(port.getPortNumber()));

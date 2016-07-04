@@ -29,12 +29,13 @@ import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 import net.onrc.openvirtex.exceptions.InvalidDPIDException;
 import net.onrc.openvirtex.exceptions.MissingRequiredField;
-import net.onrc.openvirtex.messages.OVXFlowMod;
-import net.onrc.openvirtex.messages.statistics.OVXFlowStatisticsReply;
 
 import com.thetransactioncompany.jsonrpc2.JSONRPC2Error;
 import com.thetransactioncompany.jsonrpc2.JSONRPC2ParamsType;
 import com.thetransactioncompany.jsonrpc2.JSONRPC2Response;
+import net.onrc.openvirtex.messages.OVXFlowMod;
+import org.projectfloodlight.openflow.protocol.OFFactories;
+import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
 
 public class GetPhysicalFlowtable extends ApiHandler<Map<String, Object>> {
 
@@ -46,7 +47,7 @@ public class GetPhysicalFlowtable extends ApiHandler<Map<String, Object>> {
             final Number dpid = HandlerUtils.<Number>fetchField(
                     MonitoringHandler.DPID, params, false, -1);
             final OVXMap map = OVXMap.getInstance();
-            LinkedList<OVXFlowStatisticsReply> flows = new LinkedList<OVXFlowStatisticsReply>();
+            LinkedList<OFFlowStatsEntry> flows = new LinkedList<OFFlowStatsEntry>();
 
             if (dpid.longValue() == -1) {
                 HashMap<String, List<Map<String, Object>>> res = new HashMap<String, List<Map<String, Object>>>();
@@ -64,13 +65,13 @@ public class GetPhysicalFlowtable extends ApiHandler<Map<String, Object>> {
         } catch (ClassCastException | MissingRequiredField e) {
             this.resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to fetch virtual topology : "
-                            + e.getMessage()), 0);
+                    + ": Unable to fetch virtual topology : "
+                    + e.getMessage()), 0);
         } catch (final InvalidDPIDException e) {
             this.resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to fetch virtual topology : "
-                            + e.getMessage()), 0);
+                    + ": Unable to fetch virtual topology : "
+                    + e.getMessage()), 0);
         }
 
         return this.resp;
@@ -83,20 +84,23 @@ public class GetPhysicalFlowtable extends ApiHandler<Map<String, Object>> {
     }
 
     private List<Map<String, Object>> flowModsToMap(
-            LinkedList<OVXFlowStatisticsReply> flows) {
+            LinkedList<OFFlowStatsEntry> flows) {
         final List<Map<String, Object>> res = new LinkedList<Map<String, Object>>();
-        for (OVXFlowStatisticsReply frep : flows) {
-            OVXFlowMod fm = new OVXFlowMod();
-            fm.setActions(frep.getActions());
-            fm.setMatch(frep.getMatch());
+        for (OFFlowStatsEntry frep : flows) {
+            OVXFlowMod fm = new OVXFlowMod(OFFactories.getFactory(frep.getVersion()).buildFlowModify()
+                    .setActions(frep.getActions())
+                    .setMatch(frep.getMatch())
+                    .build()
+            );
+
             res.add(fm.toMap());
         }
         return res;
     }
 
-    private LinkedList<OVXFlowStatisticsReply> aggregateFlowsBySwitch(
+    private LinkedList<OFFlowStatsEntry> aggregateFlowsBySwitch(
             long dpid, Mappable map) {
-        LinkedList<OVXFlowStatisticsReply> flows = new LinkedList<OVXFlowStatisticsReply>();
+        LinkedList<OFFlowStatsEntry> flows = new LinkedList<OFFlowStatsEntry>();
         final PhysicalSwitch sw = PhysicalNetwork.getInstance().getSwitch(dpid);
         for (Integer tid : map.listVirtualNetworks().keySet()) {
             if (sw.getFlowStats(tid) != null) {

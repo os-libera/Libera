@@ -12,15 +12,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 
+import net.onrc.openvirtex.messages.OVXMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFMessage;
+
 
 public class OVXSingleSwitch extends OVXSwitch {
 
@@ -28,6 +38,7 @@ public class OVXSingleSwitch extends OVXSwitch {
             .getName());
 
     public OVXSingleSwitch(final long switchId, final int tenantId) {
+
         super(switchId, tenantId);
     }
 
@@ -44,14 +55,14 @@ public class OVXSingleSwitch extends OVXSwitch {
 
     @Override
     // TODO: this is probably not optimal
-    public void sendSouth(final OFMessage msg, final OVXPort inPort) {
+    public void sendSouth(final OVXMessage msg, final OVXPort inPort) {
         PhysicalSwitch psw = getPhySwitch(inPort);
         log.debug("Sending packet to sw {}: {}", psw.getName(), msg);
         psw.sendMsg(msg, this);
     }
 
     @Override
-    public int translate(final OFMessage ofm, final OVXPort inPort) {
+    public int translate(final OVXMessage ofm, final OVXPort inPort) {
         // get new xid from only PhysicalSwitch tied to this switch
         PhysicalSwitch psw = getPhySwitch(inPort);
         return psw.translate(ofm, this);

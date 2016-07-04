@@ -12,13 +12,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
 
-import org.openflow.protocol.OFMessage;
+import net.onrc.openvirtex.messages.OVXMessage;
+
+
+//import org.projectfloodlight.openflow.protocol.OFMessage;
 
 public interface OVXSendMsg {
-    public void sendMsg(OFMessage msg, OVXSendMsg from);
+    public void sendMsg(OVXMessage msg, OVXSendMsg from);
 
     public String getName();
 }

@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core;
 
@@ -46,7 +55,7 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
-import org.openflow.vendor.nicira.OFNiciraVendorExtensions;
+//import org.openflow.vendor.nicira.OFNiciraVendorExtensions;
 
 public class OpenVirteXController implements Runnable {
 
@@ -286,7 +295,7 @@ public class OpenVirteXController implements Runnable {
     private void initVendorMessages() {
         // Configure openflowj to be able to parse the role request/reply
         // vendor messages.
-        OFNiciraVendorExtensions.initialize();
+//        OFNiciraVendorExtensions.initialize();
 
     }
 

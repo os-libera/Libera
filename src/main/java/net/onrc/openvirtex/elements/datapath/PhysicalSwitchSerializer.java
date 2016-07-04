@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
@@ -26,9 +35,8 @@ public class PhysicalSwitchSerializer implements JsonSerializer<PhysicalSwitch> 
 
     @Override
     public JsonElement serialize(final PhysicalSwitch sw,
-            final Type switchType, final JsonSerializationContext context) {
+                                 final Type switchType, final JsonSerializationContext context) {
         final JsonPrimitive dpid = new JsonPrimitive(sw.switchName);
         return dpid;
     }
-
 }

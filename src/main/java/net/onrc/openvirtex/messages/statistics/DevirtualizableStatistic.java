@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.messages.statistics;
 
@@ -19,8 +28,7 @@ import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.messages.OVXStatisticsRequest;
 
 /**
- * Interface for statistics devirtualization.
- *
+ * Created by Administrator on 2016-04-21.
  */
 public interface DevirtualizableStatistic {
     /**
@@ -32,5 +40,4 @@ public interface DevirtualizableStatistic {
      *            the actual statistics message
      */
     public void devirtualizeStatistic(OVXSwitch sw, OVXStatisticsRequest msg);
-
 }

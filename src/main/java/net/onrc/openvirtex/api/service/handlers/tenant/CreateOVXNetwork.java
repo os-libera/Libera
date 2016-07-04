@@ -74,8 +74,8 @@ public class CreateOVXNetwork extends ApiHandler<Map<String, Object>> {
         } catch (final MissingRequiredField e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
                     JSONRPC2Error.INVALID_PARAMS.getCode(), this.cmdName()
-                            + ": Unable to create virtual network : "
-                            + e.getMessage()), 0);
+                    + ": Unable to create virtual network : "
+                    + e.getMessage()), 0);
         } catch (final ControllerUnavailableException e) {
             resp = new JSONRPC2Response(
                     new JSONRPC2Error(JSONRPC2Error.INVALID_PARAMS.getCode(),

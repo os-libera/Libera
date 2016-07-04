@@ -12,6 +12,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
@@ -29,6 +38,7 @@ import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.RoutingAlgorithmException;
+import net.onrc.openvirtex.messages.OVXMessage;
 import net.onrc.openvirtex.routing.RoutingAlgorithms;
 import net.onrc.openvirtex.routing.RoutingAlgorithms.RoutingType;
 import net.onrc.openvirtex.routing.SwitchRoute;
@@ -37,8 +47,9 @@ import net.onrc.openvirtex.util.BitSetIndex.IndexType;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openflow.protocol.OFMessage;
-import org.openflow.util.U8;
+import org.projectfloodlight.openflow.protocol.OFVersion;
+import org.projectfloodlight.openflow.types.U8;
+
 
 /**
  * The Class OVXBigSwitch.
@@ -196,7 +207,7 @@ public class OVXBigSwitch extends OVXSwitch {
                 for (final OVXPort dstPort : this.portMap.values()) {
                     if (srcPort.getPortNumber() != dstPort.getPortNumber()
                             && srcPort.getPhysicalPort().getParentSwitch() != dstPort
-                                    .getPhysicalPort().getParentSwitch()) {
+                            .getPhysicalPort().getParentSwitch()) {
                         this.getRoute(srcPort, dstPort).register();
                     }
                 }
@@ -228,7 +239,7 @@ public class OVXBigSwitch extends OVXSwitch {
                     // empty
                     if (this.routeMap.get(route.getSrcPort()) == null
                             || this.routeMap.get(route.getSrcPort()).remove(
-                                    route.getDstPort()) == null) {
+                            route.getDstPort()) == null) {
                         return false;
                     } else {
                         result = true;
@@ -278,16 +289,23 @@ public class OVXBigSwitch extends OVXSwitch {
 
     @Override
     public String toString() {
-        return "SWITCH:\n- switchId: " + this.switchId + "\n- switchName: "
-                + this.switchName + "\n- isConnected: " + this.isConnected
-                + "\n- tenantId: " + this.tenantId + "\n- missSendLenght: "
-                + this.missSendLen + "\n- isActive: " + this.isActive
-                + "\n- capabilities: "
-                + this.capabilities.getOVXSwitchCapabilities();
+        String temp = "SWITCH: switchId: " + this.switchId + " - switchName: "
+                + this.switchName + " - isConnected: " + this.isConnected
+                + " - tenantId: " + this.tenantId + " - missSendLength: "
+                + this.missSendLen + " - isActive: " + this.isActive
+                + " - capabilities: ";
+
+        if(this.ofVersion == OFVersion.OF_10) {
+            temp = temp + this.capabilities.getOVXSwitchCapabilitiesVer10();
+        }else{
+            temp = temp + this.capabilities.getOVXSwitchCapabilitiesVer13();
+        }
+
+        return temp;
     }
 
     @Override
-    public void sendSouth(final OFMessage msg, final OVXPort inPort) {
+    public void sendSouth(final OVXMessage msg, final OVXPort inPort) {
         if (inPort == null) {
             /* TODO for some OFTypes, we can recover an inport. */
             return;
@@ -324,8 +342,8 @@ public class OVXBigSwitch extends OVXSwitch {
      *             if insufficient space to store new route
      */
     public SwitchRoute createRoute(final OVXPort ingress, final OVXPort egress,
-            final List<PhysicalLink> path, final List<PhysicalLink> revpath,
-            byte priority, int routeId) throws IndexOutOfBoundException {
+                                   final List<PhysicalLink> path, final List<PhysicalLink> revpath,
+                                   byte priority, int routeId) throws IndexOutOfBoundException {
         /*
          * Check if the big-switch route exists. - If not, create both routes
          * (normal and reverse) - If yes, compare the priorities: - If the
@@ -389,15 +407,15 @@ public class OVXBigSwitch extends OVXSwitch {
     }
 
     public SwitchRoute createRoute(final OVXPort ingress, final OVXPort egress,
-            final List<PhysicalLink> path, final List<PhysicalLink> revpath,
-            byte priority) throws IndexOutOfBoundException {
+                                   final List<PhysicalLink> path, final List<PhysicalLink> revpath,
+                                   byte priority) throws IndexOutOfBoundException {
         final int routeId = this.routeCounter.getNewIndex();
         return this.createRoute(ingress, egress, path, revpath, priority,
                 routeId);
     }
 
     private void addToRouteMap(final OVXPort in, final OVXPort out,
-            final SwitchRoute entry) {
+                               final SwitchRoute entry) {
 
         ConcurrentHashMap<OVXPort, SwitchRoute> rtmap = this.routeMap.get(in);
 
@@ -409,14 +427,13 @@ public class OVXBigSwitch extends OVXSwitch {
     }
 
     @Override
-    public int translate(final OFMessage ofm, final OVXPort inPort) {
+    public int translate(final OVXMessage ofm, final OVXPort inPort) {
         if (inPort == null) {
             // don't know the PhysicalSwitch, for now return original XID.
-            return ofm.getXid();
+            return (int)ofm.getOFMessage().getXid();
         } else {
             // we know the PhysicalSwitch
-            final PhysicalSwitch psw = inPort.getPhysicalPort()
-                    .getParentSwitch();
+            final PhysicalSwitch psw = inPort.getPhysicalPort().getParentSwitch();
             return psw.translate(ofm, this);
         }
     }

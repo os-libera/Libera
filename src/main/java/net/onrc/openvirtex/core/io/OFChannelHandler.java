@@ -12,17 +12,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * ****************************************************************************
+ * Libera HyperVisor development based OpenVirteX for SDN 2.0
+ *
+ *   OpenFlow Version Up with OpenFlowj
+ *
+ * This is updated by Libera Project team in Korea University
+ *
+ * Author: Seong-Mun Kim (bebecry@gmail.com)
  ******************************************************************************/
 package net.onrc.openvirtex.core.io;
-
-import java.io.IOException;
 
 import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.datapath.Switch;
 
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.timeout.IdleStateAwareChannelHandler;
-import org.openflow.protocol.OFType;
 
 public abstract class OFChannelHandler extends IdleStateAwareChannelHandler {
 
@@ -35,7 +41,7 @@ public abstract class OFChannelHandler extends IdleStateAwareChannelHandler {
 
     protected abstract String getSwitchInfoString();
 
-    protected abstract void sendHandShakeMessage(OFType type)
-            throws IOException;
+    //protected abstract void sendHandShakeMessage(OFType type)
+      //      throws IOException;
 
 }
