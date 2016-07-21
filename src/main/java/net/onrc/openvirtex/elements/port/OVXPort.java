@@ -69,14 +69,15 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
         try {
             this.parentSwitch = OVXMap.getInstance().getVirtualSwitch(
                     port.getParentSwitch(), tenantId);
-
-            factory = OFFactories.getFactory(this.parentSwitch.getOfVersion());
         } catch (SwitchMappingException e) {
             // something pretty wrong if we get here. Not 100% on how to handle
             // this
             throw new RuntimeException("Unexpected state in OVXMap: "
                     + e.getMessage());
         }
+
+        this.factory = OFFactories.getFactory(port.getOfPort().getVersion());
+
         this.portNumber = portNumber;
         this.name = "vport-" + this.portNumber;
         this.isEdge = isEdge;
@@ -108,7 +109,7 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
     public void setConfig() {
         this.config.clear();
 
-        if(this.parentSwitch.getOfVersion() == OFVersion.OF_10) {
+        if(this.factory.getVersion() == OFVersion.OF_10) {
             this.config.add(OFPortConfig.NO_STP);
         }
     }

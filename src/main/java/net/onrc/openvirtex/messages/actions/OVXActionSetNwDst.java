@@ -49,12 +49,10 @@ public class OVXActionSetNwDst extends OVXAction implements VirtualizableAction 
     public void virtualize(OVXSwitch sw, List<OFAction> approvedActions, OVXMatch match)
             throws ActionVirtualizationDenied, DroppedMessageException {
         this.ofActionSetNwDst = this.ofActionSetNwDst.createBuilder()
-                .setNwAddr(
-                        IPv4Address.of(
-                                IPMapper.getPhysicalIp(
-                                        sw.getTenantId(),
-                                        this.ofActionSetNwDst.getNwAddr().getInt()
-                                )
+                .setNwAddr(IPv4Address.of(
+                        IPMapper.getPhysicalIp(
+                                sw.getTenantId(),
+                                this.ofActionSetNwDst.getNwAddr().getInt())
                         )
                 )
                 .build();

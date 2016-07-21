@@ -99,8 +99,8 @@ public final class OVXActionUtil {
             case STRIP_VLAN:
                 return new OVXActionStripVlan(ofAction);
             //for  OF_1.3
-            //case SET_FIELD:
-              //  return new OVXActionSetField(ofAction);
+            case SET_FIELD:
+                return new OVXActionSetField(ofAction);
             default:
                 log.info("Unsupported Action " + ofAction.toString());
                 return null;

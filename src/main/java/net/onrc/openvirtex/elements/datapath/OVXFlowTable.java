@@ -200,7 +200,7 @@ public class OVXFlowTable implements FlowTable {
 
 
         if (fm.getFlowMod().getFlags().contains(OFFlowModFlags.CHECK_OVERLAP)){
-            //this.log.info(" OFPFF_CHECK_OVERLAP");
+            //System.out.println(" OFPFF_CHECK_OVERLAP");
 
             OVXFlowEntry fe = new OVXFlowEntry();
             for (OVXFlowMod fmod : this.flowmodMap.values()) {
@@ -208,9 +208,16 @@ public class OVXFlowTable implements FlowTable {
                 fe.setOVXFlowMod(fmod);
                 int res = fe.compare(fm.getFlowMod().getMatch(), false);
 
+                //System.out.println("------------------------");
+                //System.out.println(res);
+
+                //System.out.println(fm.getFlowMod().getPriority() + " " + fe.getPriority());
+
 //                this.log.info("res : " + res);
                 if ((res != OVXFlowEntry.DISJOINT)
                         & (fm.getFlowMod().getPriority() == fe.getPriority())) {
+
+                    //System.out.println("true");
 
                     this.vswitch.sendMsg(OVXMessageUtil.makeErrorMsg(
                             OFFlowModFailedCode.OVERLAP, fm),
@@ -242,10 +249,15 @@ public class OVXFlowTable implements FlowTable {
             log.debug("OVXFlowMod [" + U32.of(fm.hashCode()).toString() + "]");
 
             res = fe.compare(fm.getFlowMod().getMatch(), true);
+            //System.out.println("res = " + res);
+
             //replace table entry that strictly matches with given FlowMod.
             if (res == OVXFlowEntry.EQUAL) {
+                //System.out.println("res == OVXFlowEntry2.EQUAL");
+
                 long c = fmod.getKey();
-                log.info("replacing equivalent FlowEntry Cookie={}", U64.of(c).toString());
+                //System.out.println("replacing equivalent FlowEntry [cookie={}]");
+                //log.info("replacing equivalent FlowEntry Cookie={}", U64.of(c).toString());
                 OVXFlowMod old = this.flowmodMap.get(c);
 
                 if(old!=null)
@@ -255,9 +267,14 @@ public class OVXFlowTable implements FlowTable {
                 this.addFlowMod(fm, c);
                 // return cookie to pool and use the previous cookie
                 return true;
+            }else{
+                //System.out.println("res != OVXFlowEntry2.EQUAL");
             }
         }
         /* make a new cookie, add FlowMod */
+        //System.out.println("make a new cookie, add FlowMod");
+        //System.out.println("Cookie = " + this.getCookie());
+
         long newc = this.getCookie();
         log.debug("make a new [cookie={}]", U64.of(newc).toString());
 
