@@ -66,8 +66,10 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
 
     @Override
     public void devirtualize(final OVXSwitch sw) {
-        this.log.debug("devirtualize");
+        this.log.info("devirtualize");
+        //this.log.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         //this.log.info(this.getFlowMod().toString());
+        //this.log.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         //this.log.info(this.getOFMessage().toString());
 
 
@@ -122,7 +124,10 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
             try {
                 OVXAction action2 = OVXActionUtil.wrappingOVXAction(act);
 
-                ((VirtualizableAction) action2).virtualize(sw,this.approvedActions, ovxMatch);
+                ((VirtualizableAction) action2).virtualize(sw, this.approvedActions, ovxMatch);
+
+                this.modifyMatch(ovxMatch.getMatch());
+
             } catch (final ActionVirtualizationDenied e) {
                 this.log.debug("Action {} could not be virtualized; error: {}",
                         act, e.getMessage());
@@ -271,6 +276,9 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
             if(!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
                 this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);
 
+            //log.info("//////////////////////////////////////////////////////////////");
+            //log.info(this.getOFMessage().toString());
+            //log.info("//////////////////////////////////////////////////////////////");
             sw.sendSouth(this, inPort);
         }
     }

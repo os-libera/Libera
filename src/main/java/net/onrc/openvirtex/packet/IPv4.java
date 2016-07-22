@@ -74,6 +74,8 @@ public class IPv4 extends BasePacket {
 
     protected boolean isTruncated;
 
+    protected int trimLength;
+
     /**
      * Default constructor that sets the version to 4.
      */
@@ -127,6 +129,10 @@ public class IPv4 extends BasePacket {
      */
     public short getTotalLength() {
         return this.totalLength;
+    }
+
+    public int getTrimLength() {
+        return this.trimLength;
     }
 
     /**
@@ -410,8 +416,10 @@ public class IPv4 extends BasePacket {
                 bb.limit() - bb.position());
         this.payload.setParent(this);
 
+        //for trim data in packet_in for OF_1.3
         if (this.totalLength != length) {
             this.isTruncated = true;
+            this.trimLength = length - this.totalLength;
         } else {
             this.isTruncated = false;
         }

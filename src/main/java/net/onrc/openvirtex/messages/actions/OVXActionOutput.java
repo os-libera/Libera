@@ -24,6 +24,7 @@
  ******************************************************************************/
 package net.onrc.openvirtex.messages.actions;
 
+import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.address.IPMapper;
 import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
@@ -38,6 +39,7 @@ import net.onrc.openvirtex.messages.OVXPacketIn;
 import net.onrc.openvirtex.messages.OVXPacketOut;
 import net.onrc.openvirtex.protocol.OVXMatch;
 import net.onrc.openvirtex.routing.SwitchRoute;
+import net.onrc.openvirtex.services.MplsManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.OFFactories;
@@ -116,10 +118,9 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                 return;
             }
 
-            fm.setOFMessage(
-                    ((OFFlowMod)fm.getOFMessage()).createBuilder()
-                            .setCookie(U64.of(match.getCookie()))
-                            .build()
+            fm.setOFMessage(fm.getFlowMod().createBuilder()
+                    .setCookie(U64.of(match.getCookie()))
+                    .build()
             );
 
             for (final OVXPort outPort : outPortList) {
@@ -203,6 +204,7 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                             // TODO: this is logically incorrect, i have to do
                             // this because we always add the rewriting actions
                             // in the flowMod. Change it.
+                            //log.info("prependUnRewriteActions1");
                             approvedActions.addAll(
                                     IPMapper.prependUnRewriteActions(match.getMatch())
                             );
@@ -223,12 +225,21 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                                 link.generateLinkFMs(fm.clone(), flowId);
                                 approvedActions.addAll(new OVXLinkUtils(sw.getTenantId(), linkId, flowId)
                                         .setLinkFields(sw.getOfVersion()));
+
+                                //for MPLS
+                                approvedActions.addAll(
+                                        MplsManager.getInstance().setMplsActions(MplsManager.MplsNodeType.MPLS_INGRESS, flowId, match)
+                                );
                             } catch (IndexOutOfBoundException e) {
                                 log.error(
                                         "Too many host to generate the flow pairs in this virtual network {}. "
                                                 + "Dropping flow-mod {} ",
                                         sw.getTenantId(), fm);
                                 throw new DroppedMessageException();
+                            } catch (AddressMappingException e) {
+                                e.printStackTrace();
+                            } catch (DuplicateIndexException e) {
+                                e.printStackTrace();
                             }
                         }
                     } else {
@@ -240,6 +251,7 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                              * - add actions to current FM to restore packet fields
                              * related to the link
                              */
+                            //log.info("prependUnRewriteActions2");
                             approvedActions.addAll(
                                     IPMapper.prependUnRewriteActions(match.getMatch())
                             );
@@ -296,12 +308,19 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                                 approvedActions.addAll(new OVXLinkUtils(sw
                                         .getTenantId(), linkId, flowId)
                                         .setLinkFields(sw.getOfVersion()));
+
+                                //for MPLS
+                                MplsManager.getInstance().setMplsActions(MplsManager.MplsNodeType.MPLS_INTERMEDIATE, flowId, match);
                             } catch (IndexOutOfBoundException e) {
                                 log.error(
                                         "Too many host to generate the flow pairs in this virtual network {}. "
                                                 + "Dropping flow-mod {} ",
                                         sw.getTenantId(), fm);
                                 throw new DroppedMessageException();
+                            } catch (DuplicateIndexException e) {
+                                e.printStackTrace();
+                            } catch (AddressMappingException e) {
+                                e.printStackTrace();
                             }
                         }
                     }
@@ -367,6 +386,7 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                      * modify the packet and send to the physical switch.
                      */
                     throwException = false;
+                    //log.info("prependUnRewriteActions3");
                     approvedActions.addAll(
                             IPMapper.prependUnRewriteActions(match.getMatch())
                     );

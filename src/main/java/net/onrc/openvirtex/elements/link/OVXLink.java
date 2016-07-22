@@ -269,7 +269,7 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
 
         Collection<OVXFlowMod> flows = this.getSrcSwitch().getFlowTable().getFlowTable();
         for (OVXFlowMod fe : flows) {
-            for (OFAction act : ((OFFlowMod)fe.getOFMessage()).getActions()) {
+            for (OFAction act : fe.getFlowMod().getActions()) {
                 if (act.getType() == OFActionType.OUTPUT) {
 
                     OFActionOutput temp_act = (OFActionOutput)act;
@@ -282,17 +282,16 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
                                     .getVirtualNetwork(this.tenantId)
                                     .getFlowManager()
                                     .storeFlowValues(
-                                            ((OFFlowMod)fe.getOFMessage()).getMatch().get(MatchField.ETH_SRC).getBytes(),
-                                            ((OFFlowMod)fe.getOFMessage()).getMatch().get(MatchField.ETH_DST).getBytes());
+                                            fe.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                            fe.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes());
 
                             OVXFlowMod fm = fe.clone();
 
 
-                            fm.setOFMessage(
-                                    ((OFFlowMod)fm.getOFMessage()).createBuilder()
-                                                .setCookie(U64.of(((OVXFlowTable) this.getSrcPort().getParentSwitch()
-                                                        .getFlowTable()).getCookie(fe, true)))
-                                                .build()
+                            fm.setOFMessage(fm.getFlowMod().createBuilder()
+                                    .setCookie(U64.of(((OVXFlowTable) this.getSrcPort().getParentSwitch()
+                                            .getFlowTable()).getCookie(fe, true)))
+                                    .build()
                             );
 
                             this.generateLinkFMs(fm, flowId);
@@ -371,24 +370,23 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         final OVXLinkUtils lUtils = new OVXLinkUtils(this.tenantId, this.linkId, flowId);
 
         fm.modifyMatch(
-                lUtils.rewriteMatch(((OFFlowMod)fm.getOFMessage()).getMatch())
+                lUtils.rewriteMatch(fm.getFlowMod().getMatch())
         );
 
         long cookie = tenantId;
 
-        fm.setOFMessage(
-                ((OFFlowMod)fm.getOFMessage()).createBuilder()
-                        .setCookie(U64.of(cookie << 32))
-                        .build()
+        fm.setOFMessage(fm.getFlowMod().createBuilder()
+                .setCookie(U64.of(cookie << 32))
+                .build()
         );
 
         //fm.setCookie(cookie << 32);
 
-        if (((OFFlowMod)fm.getOFMessage()).getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
+        if (fm.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
             fm.modifyMatch(
                     IPMapper.rewriteMatch(
                             this.tenantId,
-                            ((OFFlowMod)fm.getOFMessage()).getMatch()
+                            fm.getFlowMod().getMatch()
                     )
             );
         }
@@ -400,10 +398,9 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         PhysicalPort inPort = null;
         PhysicalPort outPort = null;
 
-        fm.setOFMessage(
-                ((OFFlowMod)fm.getOFMessage()).createBuilder()
-                        .setBufferId(OFBufferId.NO_BUFFER)
-                        .build()
+        fm.setOFMessage(fm.getFlowMod().createBuilder()
+                .setBufferId(OFBufferId.NO_BUFFER)
+                .build()
         );
 
         List<PhysicalLink> plinks = new LinkedList<PhysicalLink>();
@@ -426,11 +423,10 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
             if (outPort != null) {
                 inPort = phyLink.getSrcPort();
 
-                fm.modifyMatch(
-                        ((OFFlowMod)fm.getOFMessage()).getMatch().createBuilder()
-                                .setExact(MatchField.IN_PORT,
-                                        OFPort.of(inPort.getPortNumber()))
-                                .build()
+                fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                        .setExact(MatchField.IN_PORT,
+                                OFPort.of(inPort.getPortNumber()))
+                        .build()
                 );
 
                 ArrayList<OFAction> actionList = new ArrayList<OFAction>();
@@ -444,12 +440,9 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
 
                 actionList.add(actionOutput);
 
-
-
-                fm.setOFMessage(
-                        ((OFFlowMod)fm.getOFMessage()).createBuilder()
-                                .setActions(actionList)
-                                .build()
+                fm.setOFMessage(fm.getFlowMod().createBuilder()
+                        .setActions(actionList)
+                        .build()
                 );
 
                 phyLink.getSrcPort().getParentSwitch()

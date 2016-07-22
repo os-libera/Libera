@@ -93,6 +93,10 @@ public class OVXMatch {
 
     public Match getMatch() { return this.ofMatch; }
 
+    public void  setMatch(Match match ) {
+        this.ofMatch = match.createBuilder().build();
+    }
+
     /**
      * Get cookie.
      *

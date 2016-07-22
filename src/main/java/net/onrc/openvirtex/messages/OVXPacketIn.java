@@ -31,6 +31,7 @@ import net.onrc.openvirtex.elements.address.PhysicalIPAddress;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.LinkedList;
 
@@ -44,15 +45,14 @@ import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.exceptions.AddressMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
-import net.onrc.openvirtex.packet.ARP;
-import net.onrc.openvirtex.packet.Ethernet;
-import net.onrc.openvirtex.packet.IPv4;
+import net.onrc.openvirtex.packet.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
+import org.projectfloodlight.openflow.util.HexString;
 
 public class OVXPacketIn extends OVXMessage implements Virtualizable {
 
@@ -123,8 +123,25 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
 
     @Override
     public void virtualize(final PhysicalSwitch sw) {
-        this.log.debug("virtualize");
-        this.log.debug(this.getPacketIn().toString());
+        //this.log.info("virtualize");
+        //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
+
+        //OF_1.3일 경우 PACKET_IN으로 오는 데이터에 Ethernet Trailer가 붙어서 오는데 이 패킷을 OVX가
+        // ONOS로 전송하면 ONOS는 그부분을 실제 데이터로 인식하여 UDP의 length로 포함되어 PACKET_OUT으로 내려보낸다.
+        // 그러나 checksum은 그대로 이기 때문에 Destination에서 Receive를 하지 못하는 문제가 생긴다.
+        // 이것을 해결하고자 Data에서 Trailer를 삭제하는 루틴을 구현한것
+        Ethernet eth2 = new Ethernet();
+        eth2.deserialize(this.getPacketIn().getData(), 0, this.getPacketIn().getData().length);
+
+        if(eth2.getPayload() instanceof IPv4) {
+            IPv4 ip = (IPv4)eth2.getPayload();
+            if (ip.isTruncated()) {
+                ByteBuffer bb = ByteBuffer.wrap(this.getPacketIn().getData());
+                byte[] temp = new byte[bb.limit()-ip.getTrimLength()];
+                bb.get(temp, 0, temp.length);
+                this.setOFMessage(this.getPacketIn().createBuilder().setData(temp).build());
+            }
+        }
 
         OVXSwitch vSwitch = OVXMessageUtil.untranslateXid(this, sw);
 
@@ -309,6 +326,7 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
             return;
         }
         vSwitch = this.fetchOVXSwitch(sw, vSwitch, map);
+
         this.sendPkt(vSwitch, match, sw);
         this.log.info("Layer2 PacketIn {} sent to virtual network {}", this.getOFMessage(),
                 this.tenantId);
@@ -362,6 +380,9 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
         if (this.port != null && this.ovxPort != null
                 && this.ovxPort.isActive()) {
 
+            //this.log.info("before-----------------------------------------------------");
+            //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
+
             this.setInport(this.ovxPort.getPortNumber());
 
             if((this.getPacketIn().getData() != null)
@@ -374,6 +395,10 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
                         .build()
                 );
             }
+
+            //this.log.info("after------------------------------------------------------");
+            //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
+
             vSwitch.sendMsg(this, sw);
         }else if (this.port == null) {
             log.error("The port {} doesn't belong to the physical switch {}", inport, sw.getName());

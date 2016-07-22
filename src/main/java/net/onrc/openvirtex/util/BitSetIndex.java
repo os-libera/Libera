@@ -57,6 +57,7 @@ public class BitSetIndex {
         HOST_ID((int) Math.pow(2, 32)),
         FLOW_COUNTER(getLinkMaxValue()),
         IP_ID((int) Math.pow(2, (32 - OpenVirteXController.getInstance().getNumberVirtualNets()))),
+        MPLS_ID((int) 0xFFFFF),
         DEFAULT(1000);
 
         protected Integer value;
@@ -92,7 +93,8 @@ public class BitSetIndex {
                     + FLOW_ID.getValue() + "\n" + "HOST_ID: "
                     + HOST_ID.getValue() + "\n" + "FLOW_COUNTER: "
                     + FLOW_COUNTER.getValue() + "\n" + "IP_ID: "
-                    + IP_ID.getValue() + "\n" + "DEFAULT: "
+                    + IP_ID.getValue() + "\n" + "MPLS_ID: "
+                    + MPLS_ID.getValue() + "DEFAULT: "
                     + DEFAULT.getValue();
         }
     }
@@ -130,6 +132,35 @@ public class BitSetIndex {
             throw new IndexOutOfBoundException("No id available in range [0,"
                     + type.getValue().toString() + "]");
         }
+    }
+
+    public synchronized Integer getNewMplsLabel(Integer value)
+            throws IndexOutOfBoundException, DuplicateIndexException {
+        if (value < type.getValue()) {
+            if (!this.set.get(value)) {
+                this.set.flip(value);
+                return value;
+            } else {
+                throw new DuplicateIndexException("Lable " + value
+                        + " already used");
+            }
+        } else {
+            throw new IndexOutOfBoundException("No id available in range [0,"
+                    + type.getValue().toString() + "]");
+        }
+    }
+
+    public synchronized Integer getNewMplsLabel()
+            throws IndexOutOfBoundException, DuplicateIndexException {
+        Integer index = this.set.nextClearBit(0);
+        try {
+            this.getNewIndex(index);
+        } catch (DuplicateIndexException e) {
+            log.error("Could not reserve new index {}: {}", index, e);
+            // Will never happen as we obtained the next index through
+            // nextClearBit()
+        }
+        return index;
     }
 
     public synchronized boolean releaseIndex(Integer index) {

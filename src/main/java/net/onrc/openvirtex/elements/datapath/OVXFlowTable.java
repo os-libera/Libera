@@ -111,21 +111,21 @@ public class OVXFlowTable implements FlowTable {
      * @return if the FlowMod needs to be sent south during devirtualization.
      */
     public boolean handleFlowMods(OVXFlowMod fm) {
-        this.log.info("handleFlowMods");
+        this.log.debug("handleFlowMods");
 
         switch (fm.getFlowMod().getCommand()) {
             case ADD:
-                this.log.info("ADD");
+                this.log.debug("ADD");
                 return doFlowModAdd(fm);
             case MODIFY:
             case MODIFY_STRICT:
-                this.log.info("MODIFY");
+                this.log.debug("MODIFY");
                 return doFlowModModify(fm);
             case DELETE:
-                this.log.info("DELETE");
+                this.log.debug("DELETE");
                 return doFlowModDelete(fm, false);
             case DELETE_STRICT:
-                this.log.info("DELETE_STRICT");
+                this.log.debug("DELETE_STRICT");
                 return doFlowModDelete(fm, true);
             default:
                 return false;

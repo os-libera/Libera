@@ -408,8 +408,8 @@ public final class OVXMessageUtil {
         byte networkProtocol = 0;
         int networkSource;
         int networkDestination;
-        short transportSource = 0;
-        short transportDestination = 0;
+        int transportSource = 0;
+        int transportDestination = 0;
 
         switch (dataLayerType) {
             case 0x0800:
@@ -439,8 +439,8 @@ public final class OVXMessageUtil {
                                 .setExact(MatchField.IP_DSCP, IpDscp.of(networkTypeOfService))
                                 .build());
 
-//                log.info("IPV4_SRC " + IPv4Address.of(networkSource).toString());
-//                log.info("IPV4_DST " + IPv4Address.of(networkDestination).toString());
+                //log.info("IPV4_SRC " + IPv4Address.of(networkSource).toString());
+                //log.info("IPV4_DST " + IPv4Address.of(networkDestination).toString());
 
 
                 break;
@@ -493,9 +493,9 @@ public final class OVXMessageUtil {
             case 0x06:
                 // tcp
                 // tcp src
-                transportSource = packetDataBB.getShort();
+                transportSource = U16.f(packetDataBB.getShort());
                 // tcp dest
-                transportDestination = packetDataBB.getShort();
+                transportDestination = U16.f(packetDataBB.getShort());
 
                 tempMatch = updateMatch(tempMatch,
                         tempMatch.createBuilder()
@@ -507,12 +507,12 @@ public final class OVXMessageUtil {
             case 0x11:
                 // udp
                 // udp src
-                transportSource = packetDataBB.getShort();
+                transportSource = U16.f(packetDataBB.getShort());
                 // udp dest
-                transportDestination = packetDataBB.getShort();
+                transportDestination = U16.f(packetDataBB.getShort());
 
-                //log.info("UDP SRC port = " + TransportPort.of(transportSource).getPort());
-                //log.info("UDP DST port = " + TransportPort.of(transportDestination).getPort());
+                //log.info("UDP SRC port = " + TransportPort.of(transportSource) + "[" + transportSource + "]");
+                //log.info("UDP DST port = " + TransportPort.of(transportDestination) + "[" + transportDestination + "]");
 
 
                 tempMatch = updateMatch(tempMatch,

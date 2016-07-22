@@ -48,6 +48,7 @@ import net.onrc.openvirtex.messages.OVXSetConfig;
 import net.onrc.openvirtex.messages.statistics.OVXDescStatsReply;
 import net.onrc.openvirtex.packet.OVXLLDP;
 
+import net.onrc.openvirtex.services.MplsManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -142,6 +143,8 @@ public class SwitchChannelHandler extends OFChannelHandler {
 
                     h.sendHandshakeHelloMessage();
 
+                    //for MPLS
+                    MplsManager.getInstance().setActive(true);
                 } else if (m.getOFMessage().getVersion().getWireVersion() >= OFVersion.OF_10.getWireVersion()) {
                     h.log.debug("Received {} Hello from {} - switching to OF "
                                     + "version 1.0", m.getOFMessage().getVersion(),
@@ -150,11 +153,14 @@ public class SwitchChannelHandler extends OFChannelHandler {
                     h.ofVersion = OFVersion.OF_10;
                     h.factory = OFFactories.getFactory(OFVersion.OF_10);
 
-                    OFHello hi = h.factory.buildHello()
+                    /*OFHello hi = h.factory.buildHello()
                                     .setXid(h.handshakeTransactionIds--)
                                     .build();
-                    h.channel.write(Collections.singletonList(hi));
+                    h.channel.write(Collections.singletonList(hi));*/
+                    h.sendHandshakeHelloMessage();
 
+                    //for MPLS
+                    MplsManager.getInstance().setActive(false);
                 } else {
                     h.log.error("Received Hello of version {} from switch at {}. "
                                     + "This controller works with OF1.0 and OF1.3 "

@@ -41,6 +41,7 @@ import org.projectfloodlight.openflow.protocol.action.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
+import org.projectfloodlight.openflow.util.HexString;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -89,7 +90,8 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
 
     @Override
     public void devirtualize(final OVXSwitch sw) throws OFParseError {
-        //this.log.info("devirtualize");
+        this.log.debug("devirtualize");
+        //this.log.info(HexString.toHexString(this.getPacketOut().getData()));
 
         OVXPort inport = sw.getPort(this.getPacketOut().getInPort().getShortPortNumber());
 
@@ -109,6 +111,9 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
                     this.getPacketOut().getInPort().getShortPortNumber(),
                     sw.getOfVersion()
             );
+
+            this.log.debug("Data Length = " + this.getPacketOut().getData().length);
+            this.log.debug(this.match.toString());
 
             ovxMatch = new OVXMatch(this.match);
             ovxMatch.setPktData(this.getPacketOut().getData());
@@ -186,6 +191,7 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
             OVXMessageUtil.translateXid(this, inport);
         }
         this.log.debug("Sending packet-out to sw {}: {}", sw.getName(), this);
+        //this.log.info(HexString.toHexString(this.getPacketOut().getData()));
         sw.sendSouth(this, inport);
     }
 
