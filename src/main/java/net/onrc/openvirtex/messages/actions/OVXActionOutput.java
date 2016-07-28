@@ -39,7 +39,6 @@ import net.onrc.openvirtex.messages.OVXPacketIn;
 import net.onrc.openvirtex.messages.OVXPacketOut;
 import net.onrc.openvirtex.protocol.OVXMatch;
 import net.onrc.openvirtex.routing.SwitchRoute;
-import net.onrc.openvirtex.services.MplsManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.OFFactories;
@@ -225,21 +224,12 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                                 link.generateLinkFMs(fm.clone(), flowId);
                                 approvedActions.addAll(new OVXLinkUtils(sw.getTenantId(), linkId, flowId)
                                         .setLinkFields(sw.getOfVersion()));
-
-                                //for MPLS
-                                approvedActions.addAll(
-                                        MplsManager.getInstance().setMplsActions(MplsManager.MplsNodeType.MPLS_INGRESS, flowId, match)
-                                );
                             } catch (IndexOutOfBoundException e) {
                                 log.error(
                                         "Too many host to generate the flow pairs in this virtual network {}. "
                                                 + "Dropping flow-mod {} ",
                                         sw.getTenantId(), fm);
                                 throw new DroppedMessageException();
-                            } catch (AddressMappingException e) {
-                                e.printStackTrace();
-                            } catch (DuplicateIndexException e) {
-                                e.printStackTrace();
                             }
                         }
                     } else {
@@ -309,18 +299,12 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                                         .getTenantId(), linkId, flowId)
                                         .setLinkFields(sw.getOfVersion()));
 
-                                //for MPLS
-                                MplsManager.getInstance().setMplsActions(MplsManager.MplsNodeType.MPLS_INTERMEDIATE, flowId, match);
                             } catch (IndexOutOfBoundException e) {
                                 log.error(
                                         "Too many host to generate the flow pairs in this virtual network {}. "
                                                 + "Dropping flow-mod {} ",
                                         sw.getTenantId(), fm);
                                 throw new DroppedMessageException();
-                            } catch (DuplicateIndexException e) {
-                                e.printStackTrace();
-                            } catch (AddressMappingException e) {
-                                e.printStackTrace();
                             }
                         }
                     }
