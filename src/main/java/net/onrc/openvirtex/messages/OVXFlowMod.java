@@ -200,16 +200,12 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
                 this.prependRewriteActions();
             } else {
 
-                log.info("before " + this.getFlowMod().getMatch().toString());
-
                 this.modifyMatch(
                         IPMapper.rewriteMatch(
                                 sw.getTenantId(),
                                 this.getFlowMod().getMatch()
                         )
                 );
-
-                log.info("after " + this.getFlowMod().getMatch().toString());
 
                 // TODO: Verify why we have two send points... and if this is
                 // the right place for the match rewriting

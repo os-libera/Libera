@@ -117,7 +117,6 @@ public final class IPMapper {
                                     IPv4Address.of(getPhysicalIp(tenantId, match.get(MatchField.IPV4_DST).getInt())))
                     .build());
         }
-
         return temp;
     }
 
