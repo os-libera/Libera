@@ -45,6 +45,7 @@ import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 
 
@@ -94,24 +95,26 @@ public final class IPMapper {
         return 0;
     }
 
-    public static Match rewriteMatch(final Integer tenantId, final Match match) {
-        Match temp = match;
+    public static synchronized Match rewriteMatch(final Integer tenantId, final Match match) {
+        Match temp = match.createBuilder().build();
 
         if(match.get(MatchField.IPV4_SRC) != null)
         {
             temp = OVXMessageUtil.updateMatch(temp,
                     temp.createBuilder()
+                            .setExact(MatchField.ETH_TYPE, EthType.IPv4)
                             .setExact(MatchField.IPV4_SRC,
-                                    IPv4Address.of(getPhysicalIp(tenantId, temp.get(MatchField.IPV4_SRC).getInt())))
-                    .build());
+                                    IPv4Address.of(getPhysicalIp(tenantId, match.get(MatchField.IPV4_SRC).getInt())))
+                            .build());
         }
 
         if(match.get(MatchField.IPV4_DST) != null)
         {
             temp = OVXMessageUtil.updateMatch(temp,
                     temp.createBuilder()
+                            .setExact(MatchField.ETH_TYPE, EthType.IPv4)
                             .setExact(MatchField.IPV4_DST,
-                                    IPv4Address.of(getPhysicalIp(tenantId, temp.get(MatchField.IPV4_DST).getInt())))
+                                    IPv4Address.of(getPhysicalIp(tenantId, match.get(MatchField.IPV4_DST).getInt())))
                     .build());
         }
 

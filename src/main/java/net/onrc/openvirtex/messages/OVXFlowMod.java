@@ -66,7 +66,7 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
 
     @Override
     public void devirtualize(final OVXSwitch sw) {
-        this.log.info("devirtualize");
+        //this.log.info("devirtualize");
         //this.log.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         //this.log.info(this.getFlowMod().toString());
         //this.log.info("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -125,8 +125,6 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
                 OVXAction action2 = OVXActionUtil.wrappingOVXAction(act);
 
                 ((VirtualizableAction) action2).virtualize(sw, this.approvedActions, ovxMatch);
-
-                this.modifyMatch(ovxMatch.getMatch());
 
             } catch (final ActionVirtualizationDenied e) {
                 this.log.debug("Action {} could not be virtualized; error: {}",
@@ -201,12 +199,17 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
             if (inPort.isEdge()) {
                 this.prependRewriteActions();
             } else {
+
+                log.info("before " + this.getFlowMod().getMatch().toString());
+
                 this.modifyMatch(
                         IPMapper.rewriteMatch(
                                 sw.getTenantId(),
                                 this.getFlowMod().getMatch()
                         )
                 );
+
+                log.info("after " + this.getFlowMod().getMatch().toString());
 
                 // TODO: Verify why we have two send points... and if this is
                 // the right place for the match rewriting
@@ -276,9 +279,6 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
             if(!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
                 this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);
 
-            //log.info("//////////////////////////////////////////////////////////////");
-            //log.info(this.getOFMessage().toString());
-            //log.info("//////////////////////////////////////////////////////////////");
             sw.sendSouth(this, inPort);
         }
     }

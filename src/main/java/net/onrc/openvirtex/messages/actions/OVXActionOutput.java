@@ -45,10 +45,8 @@ import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
 
-import org.projectfloodlight.openflow.protocol.action.OFAction;
-import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
-import org.projectfloodlight.openflow.protocol.action.OFActionSetDlDst;
-import org.projectfloodlight.openflow.protocol.action.OFActionSetDlSrc;
+import org.projectfloodlight.openflow.protocol.OFVersion;
+import org.projectfloodlight.openflow.protocol.action.*;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 
 import org.projectfloodlight.openflow.types.OFPort;
@@ -261,14 +259,29 @@ public class OVXActionOutput extends OVXAction implements VirtualizableAction {
                                     // OFActionOutput만 있는 경우에도 이부분이 실행되나?
                                     boolean skipSrcMac = false;
                                     boolean skipDstMac = false;
+
                                     for (final OFAction act : approvedActions) {
-                                        if (act instanceof OFActionSetDlSrc) {
-                                            skipSrcMac = true;
-                                        }
-                                        if (act instanceof OFActionSetDlDst) {
-                                            skipDstMac = true;
+                                        if(act.getVersion() == OFVersion.OF_10) {
+                                            if (act instanceof OFActionSetDlSrc) {
+                                                skipSrcMac = true;
+                                            }
+                                            if (act instanceof OFActionSetDlDst) {
+                                                skipDstMac = true;
+                                            }
+                                        }else {
+                                            if (act instanceof OFActionSetField) {
+                                                if (((OFActionSetField) act).getField() == MatchField.ETH_SRC) {
+                                                    skipSrcMac = true;
+                                                }
+
+                                                if (((OFActionSetField) act).getField() == MatchField.ETH_DST) {
+                                                    skipDstMac = true;
+                                                }
+                                            }
                                         }
                                     }
+
+
                                     approvedActions.addAll(
                                             lUtils.unsetLinkFields(skipSrcMac, skipDstMac, sw.getOfVersion())
                                     );

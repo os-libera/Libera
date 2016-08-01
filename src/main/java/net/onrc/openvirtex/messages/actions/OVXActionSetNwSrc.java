@@ -53,7 +53,8 @@ public class OVXActionSetNwSrc extends OVXAction implements VirtualizableAction 
                         IPMapper.getPhysicalIp(
                                 sw.getTenantId(),
                                 this.ofActionSetNwSrc.getNwAddr().getInt())
-                ))
+                        )
+                )
                 .build();
 
         approvedActions.add(this.ofActionSetNwSrc);
