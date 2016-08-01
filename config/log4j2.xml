@@ -24,7 +24,6 @@
     <File name="File" fileName="./log/ovx.log" append="false">
       <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{1} - %msg%n"/>
     </File>
-
 -->
   </appenders>
 
