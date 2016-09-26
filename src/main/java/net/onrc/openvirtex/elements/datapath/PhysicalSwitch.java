@@ -25,6 +25,7 @@
 package net.onrc.openvirtex.elements.datapath;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,7 +45,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.projectfloodlight.openflow.protocol.*;
+import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.OFPort;
 
 public class PhysicalSwitch extends Switch<PhysicalPort> {
@@ -203,7 +206,66 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
         PhysicalNetwork.getInstance().addSwitch(this);
         this.fillPortMap();
         this.statsMan.start();
+
+        //for OVS new version
+        sendDefaultFlowsAdd();
+
         return true;
+    }
+
+    private void sendDefaultFlowsAdd() {
+        HashSet<OFFlowModFlags> flags = new HashSet<OFFlowModFlags>();
+        flags.add(OFFlowModFlags.SEND_FLOW_REM);
+
+        OFAction output = ofFactory.actions().buildOutput()
+                .setPort(OFPort.CONTROLLER)
+                .setMaxLen(0xffff)
+                .build();
+
+        OFFlowAdd ofFlowAdd = ofFactory.buildFlowAdd()
+                .setMatch(ofFactory.buildMatch()
+                        .setExact(MatchField.ETH_TYPE, EthType.LLDP)
+                        .build())
+                .setActions(Collections.singletonList(output))
+                .setPriority(40000)
+                .setFlags(flags)
+                .build();
+        OVXMessage dFm = new OVXMessage(ofFlowAdd);
+        this.sendMsg(dFm, this);
+
+        ofFlowAdd = ofFactory.buildFlowAdd()
+                .setMatch(ofFactory.buildMatch()
+                        .setExact(MatchField.ETH_TYPE, EthType.ARP)
+                        .build())
+                .setActions(Collections.singletonList(output))
+                .setPriority(40000)
+                .setFlags(flags)
+                .build();
+        dFm = new OVXMessage(ofFlowAdd);
+        this.sendMsg(dFm, this);
+
+        ofFlowAdd = ofFactory.buildFlowAdd()
+                .setMatch(ofFactory.buildMatch()
+                        .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                        .build())
+                .setActions(Collections.singletonList(output))
+                .setPriority(5)
+                .setFlags(flags)
+                .build();
+        dFm = new OVXMessage(ofFlowAdd);
+        this.sendMsg(dFm, this);
+
+        ofFlowAdd = ofFactory.buildFlowAdd()
+                .setMatch(ofFactory.buildMatch()
+                        .setExact(MatchField.ETH_TYPE, EthType.ARP)
+                        .build())
+                .setActions(Collections.singletonList(output))
+                .setPriority(5)
+                .setFlags(flags)
+                .build();
+        dFm = new OVXMessage(ofFlowAdd);
+        this.sendMsg(dFm, this);
+
     }
 
     /**
@@ -334,8 +396,8 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     private void sendDeleteFlowMod(OVXFlowStatsReply reply, short port) {
-        OFFlowDeleteStrict ofFlowDeleteStrict = OFFactories.getFactory(reply.getOFMessage().getVersion())
-                .buildFlowDeleteStrict()
+        //log.info("sendDeleteFlowMod");
+        OFFlowDeleteStrict ofFlowDeleteStrict = ofFactory.buildFlowDeleteStrict()
                 .setMatch(reply.getOFFlowStatsEntry().getMatch())
                 .setOutPort(OFPort.of(port))
                 .build();
