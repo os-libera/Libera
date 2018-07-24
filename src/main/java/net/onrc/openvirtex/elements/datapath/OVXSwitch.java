@@ -833,5 +833,4 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
      *            towards the physical network
      */
     public abstract void sendSouth(OVXMessage msg, OVXPort inPort);
-
 }

@@ -24,16 +24,16 @@
  ******************************************************************************/
 package net.onrc.openvirtex.elements.datapath;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import net.onrc.openvirtex.api.service.handlers.monitoring.GetVirtualHosts;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
 import net.onrc.openvirtex.elements.datapath.statistics.StatisticsManager;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
+import net.onrc.openvirtex.exceptions.DuplicateIndexException;
+import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 
 import net.onrc.openvirtex.messages.OVXFlowMod;
@@ -41,20 +41,29 @@ import net.onrc.openvirtex.messages.OVXMessage;
 import net.onrc.openvirtex.messages.OVXStatisticsReply;
 import net.onrc.openvirtex.messages.Virtualizable;
 import net.onrc.openvirtex.messages.statistics.OVXFlowStatsReply;
+import net.onrc.openvirtex.services.path.Node;
+import net.onrc.openvirtex.services.path.physicalpath.PhysicalPath;
+import net.onrc.openvirtex.services.path.virtualpath.VirtualPath;
+import net.onrc.openvirtex.services.path.virtualpath.VirtualPathBuilder;
+import net.onrc.openvirtex.util.BitSetIndex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.EthType;
+import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.U64;
 
 public class PhysicalSwitch extends Switch<PhysicalPort> {
     private static Logger log = LogManager.getLogger(PhysicalSwitch.class.getName());
+    private static BitSetIndex switchLocIDDistributor = new BitSetIndex(BitSetIndex.IndexType.LOC_ID);
 
         // The Xid mapper
-    private final XidTranslator<OVXSwitch> translator;
+    private XidTranslator<OVXSwitch> translator = null;
     private StatisticsManager statsMan = null;
 
     private AtomicReference<Map<Short, OFPortStatsEntry>> portStats;
@@ -63,6 +72,12 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     //private AtomicReference<Map<Integer, List<OVXFlowStatisticsReply>>> flowStats;
 
     private AtomicReference<Map<Integer, List<OFFlowStatsEntry>>> flowStats;
+
+    //for LISP
+    private int switchLoID;
+    private IPv4Address physicalAddress;
+    //for path virtualization
+    private HashSet<Integer> pathIDs;
 
     class DeregAction implements Runnable {
 
@@ -101,7 +116,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      * @param switchId
      *            the switch id
      */
-    public PhysicalSwitch(final long switchId, OFVersion ofv) {
+    public PhysicalSwitch(final long switchId, OFVersion ofv) throws IndexOutOfBoundException, DuplicateIndexException {
         super(switchId);
         this.translator = new XidTranslator<OVXSwitch>();
         this.portStats = new AtomicReference<Map<Short, OFPortStatsEntry>>();
@@ -110,6 +125,12 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
         this.setOfVersion(ofv);
 
         this.statsMan = new StatisticsManager(this);
+
+        this.switchLoID = this.switchLocIDDistributor.getNewLocId();
+        this.physicalAddress = IPv4Address.of(this.switchLoID);
+        this.pathIDs = new HashSet<>();
+
+        //System.out.printf("Switch LOD %d\n", this.switchLoID);
     }
 
     /**
@@ -209,7 +230,6 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
 
         //for OVS new version
         sendDefaultFlowsAdd();
-
         return true;
     }
 
@@ -254,18 +274,6 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
                 .build();
         dFm = new OVXMessage(ofFlowAdd);
         this.sendMsg(dFm, this);
-
-        ofFlowAdd = ofFactory.buildFlowAdd()
-                .setMatch(ofFactory.buildMatch()
-                        .setExact(MatchField.ETH_TYPE, EthType.ARP)
-                        .build())
-                .setActions(Collections.singletonList(output))
-                .setPriority(5)
-                .setFlags(flags)
-                .build();
-        dFm = new OVXMessage(ofFlowAdd);
-        this.sendMsg(dFm, this);
-
     }
 
     /**
@@ -346,15 +354,87 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     public void setFlowStatistics(
             Map<Integer, List<OFFlowStatsEntry>> stats) {
         this.flowStats.set(stats);
-
     }
 
     public List<OFFlowStatsEntry> getFlowStats(int tid) {
+        Collection<VirtualPath> vPaths = VirtualPathBuilder.getInstance().getVirtualPaths();
+        PhysicalPath pPath = null;
+        PhysicalPath mPath = null;
+        Node pNode = null, mNode = null;
+
+        List<OFFlowStatsEntry> entries = new LinkedList<>();
+
+        //log.info("Switch LOC {}", this.getSwitchLocID());
+
+        for(VirtualPath vPath : vPaths) {
+            if (vPath.getTenantID() == tid) {
+
+                pPath = vPath.getPhysicalPath();
+                pNode = pPath.getCorrespondingNode(this);
+
+                if(vPath.isMigrated()) {
+                    mPath = vPath.getMigratedPhysicalPath();
+                    mNode = mPath.getCorrespondingNode(this);
+
+                    if(pNode != null & mNode == null) {
+                        if(pNode.getFlowStatsEntry() != null) {
+                            log.debug("1. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                    pNode.getFlowStatsEntry().getMatch().toString());
+                            entries.add(pNode.getFlowStatsEntry());
+                        }else{
+                            log.debug("1. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                        }
+                    }else if(pNode != null & mNode != null) {
+                        if(pNode.getFlowStatsEntry() != null) {
+                            log.debug("2. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                    pNode.getFlowStatsEntry().getMatch().toString());
+                            entries.add(pNode.getFlowStatsEntry());
+                        }else{
+                            log.debug("2. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                        }
+                    }else if(pNode == null & mNode != null) {
+                        log.debug("3. Switch[{}] FlowID {} pNode == null & mNode != null", this.getSwitchLocID(), vPath.getFlowID());
+
+                    }else{
+                        log.debug("4. Switch[{}] FlowID {} pNode == null & mNode == null", this.getSwitchLocID(), vPath.getFlowID());
+                    }
+                }else{
+                    if(pNode != null) {
+                        if(pNode.getFlowStatsEntry() != null) {
+                            log.debug("5. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                    pNode.getFlowStatsEntry().getMatch().toString());
+                            entries.add(pNode.getFlowStatsEntry());
+                        }else{
+                            log.debug("5. Switch[{}] FlowID {} pNode.getFlowStatsEntry() == null", this.getSwitchLocID(), vPath.getFlowID());
+                        }
+                    }else{
+                        log.debug("pNode == null");
+                    }
+                }
+            }
+        }
+
+        if(entries.size() == 0)
+            return null;
+        else
+            return entries;
+
+
+        /*
         Map<Integer, List<OFFlowStatsEntry>> stats = this.flowStats.get();
         if (stats != null && stats.containsKey(tid)) {
             return Collections.unmodifiableList(stats.get(tid));
         }
-        return null;
+        return null;*/
+    }
+
+    private OFFlowStatsEntry getRelatedEntry(PhysicalPath pPath) {
+
+        if(pPath.getSrcSwitch().getFlowStatsEntry() != null)
+            return pPath.getSrcSwitch().getFlowStatsEntry();
+        else
+            return pPath.getDstSwitch().getFlowStatsEntry();
+
     }
 
     public OFPortStatsEntry getPortStat(short portNumber) {
@@ -370,6 +450,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     public void removeFlowMods(OVXStatisticsReply msg) {
+        //log.info("removeFlowMods {}", msg.getOFMessage().toString());
         OFFlowStatsReply ofStatsReply = (OFFlowStatsReply)msg.getOFMessage();
 
         int tid = (int)ofStatsReply.getXid() >> 16;
@@ -396,8 +477,8 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     private void sendDeleteFlowMod(OVXFlowStatsReply reply, short port) {
-        //log.info("sendDeleteFlowMod");
-        OFFlowDeleteStrict ofFlowDeleteStrict = ofFactory.buildFlowDeleteStrict()
+        OFFlowDeleteStrict ofFlowDeleteStrict = OFFactories.getFactory(reply.getOFMessage().getVersion())
+                .buildFlowDeleteStrict()
                 .setMatch(reply.getOFFlowStatsEntry().getMatch())
                 .setOutPort(OFPort.of(port))
                 .build();
@@ -420,5 +501,32 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     @Override
     public void removeChannel(Channel channel) {
 
+    }
+
+    //for LISP
+    public int getSwitchLocID() {
+        return this.switchLoID;
+    }
+
+    public IPv4Address getPhysicalAddress() {
+        return this.physicalAddress;
+    }
+
+    //for path virtualization
+    public boolean addPathID(int pathid) {
+        if(this.pathIDs.contains(pathid)) {
+            return false;
+        }else{
+            this.pathIDs.add(pathid);
+            return true;
+        }
+    }
+
+    public HashSet<Integer> getPathIDs() {
+        return this.pathIDs;
+    }
+
+    public boolean removePathID(int pathid) {
+        return this.pathIDs.remove(pathid);
     }
 }

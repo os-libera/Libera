@@ -57,7 +57,7 @@ public class Host implements Persistable {
     public static final String DB_KEY = "hosts";
     private final Integer hostId;
     private final MacAddress mac;
-    private final OVXPort port;
+    private OVXPort port;
     private OVXIPAddress ipAddress = new OVXIPAddress(0, 0);
 
     /**
@@ -108,6 +108,11 @@ public class Host implements Persistable {
      */
     public OVXPort getPort() {
         return port;
+    }
+
+    //for VM
+    public void setPort(OVXPort port) {
+        this.port = port;
     }
 
     /**

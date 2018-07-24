@@ -39,6 +39,7 @@ import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
+import org.projectfloodlight.openflow.util.HexString;
 
 import java.nio.ByteBuffer;
 
@@ -346,6 +347,10 @@ public final class OVXMessageUtil {
 
     public static Match loadFromPacket(final byte[] packetData, final short inputPort, OFVersion ofVersion) {
         //packetData은 PacketIn으로 올라온 패킷(Ethernet+IP/ICMP+TCP/UCP)형태임 여기서 MAC주소등등의 정보를 Match로 저장한다.
+        //log.info("Length : " + packetData.length + "\n" + HexString.toHexString(packetData));
+        //log.info("Length : " + packetData.length);
+        if(packetData.length == 0)
+            return null;
         short scratch;
         int transportOffset = 34;
         final ByteBuffer packetDataBB = ByteBuffer.wrap(packetData);

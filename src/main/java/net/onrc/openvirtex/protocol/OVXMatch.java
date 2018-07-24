@@ -26,6 +26,8 @@ package net.onrc.openvirtex.protocol;
 
 import java.util.HashMap;
 
+import net.onrc.openvirtex.elements.datapath.OVXSwitch;
+import net.onrc.openvirtex.services.path.SwitchType;
 import org.projectfloodlight.openflow.protocol.OFFactories;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFVersion;
@@ -53,6 +55,15 @@ public class OVXMatch {
     OFFactory ofFactory;
     Match ofMatch;
 
+    //store match map in MplsManager
+    private OVXSwitch sw;
+    private SwitchType switchType;
+    private Integer flowId;
+    private Integer tenantId;
+    private Integer srcPhysicalSwitch;
+    private Integer dstPhysicalSwitch;
+
+
     /**
      * Instantiates a new void OVXatch.
      */
@@ -63,6 +74,10 @@ public class OVXMatch {
 
         this.cookie = 0;
         this.pktData = null;
+
+        this.flowId = null;
+        this.switchType = null;
+        this.tenantId = null;
     }
 
     /**
@@ -89,6 +104,10 @@ public class OVXMatch {
         this.ofMatch = match.createBuilder().build();
         this.cookie = 0;
         this.pktData = null;
+
+        this.flowId = null;
+        this.switchType = null;
+        this.tenantId = null;
     }
 
     public Match getMatch() { return this.ofMatch; }
@@ -218,6 +237,47 @@ public class OVXMatch {
             ret.put(MatchField.TCP_DST.getName(), this.ofMatch.get(MatchField.TCP_DST).toString());
 
         return ret;
+    }
+
+    //use for MPLS
+    public void setOVXSwitch(OVXSwitch sw) {
+        this.sw = sw;
+    }
+
+    public OVXSwitch getOVXSwitch() {
+        return this.sw;
+    }
+
+    public void setMplsInfo(SwitchType type, Integer id, Integer tid) {
+        this.setSwitchType(type);
+        this.setFlowId(id);
+        this.setTenantId(tid);
+    }
+
+    public void setTenantId(Integer tid) { this.tenantId = tid; }
+    public Integer getTenantId() { return this.tenantId; }
+
+    public void setSwitchType(SwitchType type) {
+        this.switchType = type;
+    }
+
+    public SwitchType getSwitchType() {
+        return this.switchType;
+    }
+
+    public void setFlowId(Integer id) {
+        this.flowId = id;
+    }
+    public Integer getFlowId() {
+        return this.flowId;
+    }
+    public OVXMatch clone() {
+        OVXMatch temp = new OVXMatch(this.getMatch());
+        temp.setOVXSwitch(this.sw);
+        temp.setSwitchType(this.switchType);
+        temp.setFlowId(this.flowId);
+
+        return temp;
     }
 
     /**

@@ -59,6 +59,7 @@ public class PhysicalPort extends Port<PhysicalSwitch, PhysicalLink> {
     private PhysicalPort(final OFPortDesc port) {
         super(port);
         this.ovxPortMap = new HashMap<Integer, HashMap<Integer, OVXPort>>();
+        System.out.printf("%s\n", port.toString());
     }
 
     /**

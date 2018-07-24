@@ -24,22 +24,17 @@
  ******************************************************************************/
 package net.onrc.openvirtex.elements;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.math.BigInteger;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.collect.HashBiMap;
 import net.onrc.openvirtex.elements.address.OVXIPAddress;
 import net.onrc.openvirtex.elements.address.PhysicalIPAddress;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
+import net.onrc.openvirtex.elements.host.Host;
 import net.onrc.openvirtex.elements.link.OVXLink;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.network.OVXNetwork;
@@ -49,12 +44,14 @@ import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.routing.SwitchRoute;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.googlecode.concurrenttrees.radix.ConcurrentRadixTree;
 import com.googlecode.concurrenttrees.radix.RadixTree;
 import com.googlecode.concurrenttrees.radix.node.concrete.DefaultCharArrayNodeFactory;
+import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 
 
@@ -76,6 +73,16 @@ public class OVXMap implements Mappable {
     private RadixTree<ConcurrentHashMap<Integer, PhysicalIPAddress>> virtualIPMap;
     private RadixTree<Integer> macMap;
 
+
+    //for migration
+    private HashBiMap<Integer, BigInteger> flows;
+    private HashMap<MacAddress, Host> macAddressHostHashMap;
+    private HashMap<MacAddress, Integer> srcMacFlowIDMap;
+    private HashMap<MacAddress, Integer> dstMacFlowIDMap;
+    private HashMap<MacAddress, MacAddress> srcMacDstMacMap;
+    private HashMap<MacAddress, MacAddress> dstMacSrcMacMap;
+
+
     /**
      * Creates a new map instance, by initializing all mapping data structures.
      */
@@ -93,6 +100,13 @@ public class OVXMap implements Mappable {
                 new DefaultCharArrayNodeFactory());
         this.macMap = new ConcurrentRadixTree<Integer>(
                 new DefaultCharArrayNodeFactory());
+
+        this.flows = HashBiMap.create();
+        this.macAddressHostHashMap = new HashMap<>();
+        this.srcMacFlowIDMap = new HashMap<>();
+        this.dstMacFlowIDMap = new HashMap<>();
+        this.srcMacDstMacMap = new HashMap<>();
+        this.dstMacSrcMacMap = new HashMap<>();
     }
 
     /**
@@ -836,4 +850,51 @@ public class OVXMap implements Mappable {
             }
         }
     }
+
+
+    //for migration
+    public void addMacHost(MacAddress mac, Host host) {
+        macAddressHostHashMap.put(mac, host);
+    }
+
+    public Host getHost(MacAddress mac) {
+        return macAddressHostHashMap.get(mac);
+    }
+
+    public void addFlows(Integer flowId, final byte[] srcMac, final byte[] dstMac) {
+        final BigInteger dualMac = new BigInteger(ArrayUtils.addAll(srcMac,
+                dstMac));
+        if(flows.get(flowId) == null) {
+            flows.put(flowId, dualMac);
+
+            srcMacFlowIDMap.put(MacAddress.of(srcMac), flowId);
+            dstMacFlowIDMap.put(MacAddress.of(dstMac), flowId);
+
+            srcMacDstMacMap.put(MacAddress.of(srcMac), MacAddress.of(dstMac));
+            dstMacSrcMacMap.put(MacAddress.of(dstMac), MacAddress.of(srcMac));
+        }
+    }
+
+    public MacAddress getDstMacFromSrcMac(MacAddress mac) {
+        return srcMacDstMacMap.get(mac);
+    }
+
+    public MacAddress getSrcMacFromDstMac(MacAddress mac) {
+        return dstMacSrcMacMap.get(mac);
+    }
+
+    public Integer getSrcMacFlowID(MacAddress mac) {
+        return srcMacFlowIDMap.get(mac);
+    }
+
+    public Integer getDstMacFlowID(MacAddress mac) {
+        return dstMacFlowIDMap.get(mac);
+    }
+
+    public Integer getFlowID(final byte[] srcMac, final byte[] dstMac) {
+        final BigInteger dualMac = new BigInteger(ArrayUtils.addAll(srcMac,
+                dstMac));
+        return this.flows.inverse().get(dualMac);
+    }
+
 }

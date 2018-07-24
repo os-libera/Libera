@@ -63,7 +63,7 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
 
     @Override
     public void devirtualizeStatistic(final OVXSwitch sw, final OVXStatisticsRequest msg) {
-//        this.log.info("devirtualizeStatistic");
+        //this.log.info("devirtualizeStatistic Before {}", this.ofFlowStatsRequest.toString());
 
         List<OFFlowStatsEntry> replies = new LinkedList<OFFlowStatsEntry>();
         HashSet<Long> uniqueCookies = new HashSet<Long>();
@@ -71,25 +71,26 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
 
         if (this.outPort.getPortNumber() == OFPort.ANY.getPortNumber()) {
             for (PhysicalSwitch psw : getPhysicalSwitches(sw)) {
-//                this.log.info("getTenantId " + tid);
+                //this.log.info("getTenantId " + tid);
                 List<OFFlowStatsEntry> reps = psw.getFlowStats(tid);
                 if (reps != null) {
 //                    this.log.info("reps != null");
 
                     for (OFFlowStatsEntry stat : reps) {
 
-//                        this.log.info(stat.toString());
+                        //this.log.info("before {}", stat.toString());
 
 //                        this.log.info("stat.getCookie() = " + stat.getCookie().toString());
 
                         if (!uniqueCookies.contains(stat.getCookie().getValue())) {
+                            //this.log.info("is not contained");
                             OVXFlowMod origFM;
                             try {
                                 origFM = sw.getFlowMod(stat.getCookie().getValue());
 
                                 uniqueCookies.add(stat.getCookie().getValue());
                             } catch (MappingException e) {
-                                log.warn(
+                                log.info(
                                         "FlowMod not found in FlowTable for cookie={}, {}",
                                         stat.getCookie().toString(),
                                         stat.toString());
@@ -107,7 +108,12 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
                                 stat = stat.createBuilder().setInstructions(origFM.getFlowMod().getInstructions()).build();
 
 
+                            //this.log.info("after {}", stat.toString());
+
+
                             replies.add(stat);
+                        }else{
+                            this.log.info("is contained");
                         }
                     }
                 }
@@ -119,6 +125,8 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
                     .build();
 
             OVXStatisticsReply reply = new OVXStatisticsReply(flowStatsReply);
+
+            //this.log.info("devirtualizeStatistic after {}",flowStatsReply.toString());
 
             sw.sendMsg(reply, sw);
         }

@@ -361,10 +361,10 @@ public class SwitchDiscoveryManager implements LLDPEventHandler, OVXSendMsg, Tim
                     this.portProbeCount.remove(portNumber);
 
                     // Remove link from topology
-                    final PhysicalPort srcPort = this.sw.getPort(portNumber);
+                    /*final PhysicalPort srcPort = this.sw.getPort(portNumber);
                     final PhysicalPort dstPort = PhysicalNetwork.getInstance()
                             .getNeighborPort(srcPort);
-                    PhysicalNetwork.getInstance().removeLink(srcPort, dstPort);
+                    PhysicalNetwork.getInstance().removeLink(srcPort, dstPort);*/
                 }
             }
 

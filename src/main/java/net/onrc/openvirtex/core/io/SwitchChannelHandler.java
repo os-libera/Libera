@@ -40,7 +40,9 @@ import java.util.concurrent.RejectedExecutionException;
 import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
+import net.onrc.openvirtex.exceptions.DuplicateIndexException;
 import net.onrc.openvirtex.exceptions.HandshakeTimeoutException;
+import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.SwitchStateException;
 import net.onrc.openvirtex.messages.OVXMessage;
 import net.onrc.openvirtex.messages.OVXPortStatus;
@@ -149,12 +151,7 @@ public class SwitchChannelHandler extends OFChannelHandler {
                     h.ofVersion = OFVersion.OF_10;
                     h.factory = OFFactories.getFactory(OFVersion.OF_10);
 
-                    /*OFHello hi = h.factory.buildHello()
-                                    .setXid(h.handshakeTransactionIds--)
-                                    .build();
-                    h.channel.write(Collections.singletonList(hi));*/
                     h.sendHandshakeHelloMessage();
-
                 } else {
                     h.log.error("Received Hello of version {} from switch at {}. "
                                     + "This controller works with OF1.0 and OF1.3 "
@@ -163,8 +160,6 @@ public class SwitchChannelHandler extends OFChannelHandler {
                     h.channel.disconnect();
                     return;
                 }
-
-
                 h.sendHandshakeFeaturesRequestMessage(m);
                 h.setState(WAIT_FEATURES_REPLY);
             }
@@ -350,7 +345,13 @@ public class SwitchChannelHandler extends OFChannelHandler {
                 h.channel.write(Collections.singletonList(fm));
 
 
-                h.sw = new PhysicalSwitch(h.featuresReply.getDatapathId().getLong(), h.ofVersion);
+                try {
+                    h.sw = new PhysicalSwitch(h.featuresReply.getDatapathId().getLong(), h.ofVersion);
+                } catch (IndexOutOfBoundException e) {
+                    e.printStackTrace();
+                } catch (DuplicateIndexException e) {
+                    e.printStackTrace();
+                }
                 // set switch information
                 // set features reply and channel first so we have a DPID and
                 // channel info.
@@ -376,30 +377,6 @@ public class SwitchChannelHandler extends OFChannelHandler {
                 h.pendingPortStatusMsg.clear();
                 h.sw.boot();
 
-                 /*final OVXDescriptionStatistics description = new OVXDescriptionStatistics();
-                final ChannelBuffer data = ChannelBuffers.buffer(description
-                        .getLength());
-                final OFStatistics f = m.getFirstStatistics();
-                f.writeTo(data);
-                description.readFrom(data);
-                OFFlowMod fm = new OFFlowMod();
-                fm.setCommand(OFFlowMod.OFPFC_DELETE);
-                fm.setMatch(new OFMatch());
-                h.channel.write(Collections.singletonList(fm));
-                h.sw = new PhysicalSwitch(h.featuresReply.getDatapathId());
-                // set switch information
-                // set features reply and channel first so we have a DPID and
-                // channel info.
-                h.sw.setFeaturesReply(h.featuresReply);
-                h.sw.setDescriptionStats(description);
-                h.sw.setConnected(true);
-                h.sw.setChannel(h.channel);
-
-                for (final OFPortStatus ps : h.pendingPortStatusMsg) {
-                    this.handlePortStatusMessage(h, ps);
-                }
-                h.pendingPortStatusMsg.clear();
-                h.sw.boot();*/
                 h.setState(ACTIVE);
             }
 

@@ -101,6 +101,7 @@ public class OVXLinkUtils {
      * @param dstMac
      *            the dst mac
      */
+
     public OVXLinkUtils(final MacAddress srcMac, final MacAddress dstMac) {
         this();
         this.srcMac = srcMac;
@@ -147,9 +148,6 @@ public class OVXLinkUtils {
                 tenantId.longValue() << 48 - vNets
                         | linkId.longValue() << (48 - vNets) / 2
                         | flowId.longValue());
-//                .valueOf(tenantId.longValue() << 48 - vNets
-//                        | linkId.longValue() << (48 - vNets) / 2
-//                        | flowId.longValue());
         final Long src = mac.getLong() >> 24 & 0xFFFFFF;
         final Long dst = mac.getLong() & 0xFFFFFF;
         this.srcMac = MacAddress.of((long) 0xa42305 << 24 | src);

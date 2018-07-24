@@ -44,6 +44,7 @@ import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.routing.SwitchRoute;
+import net.onrc.openvirtex.services.failover.FailOver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.*;
@@ -62,7 +63,6 @@ public class OVXPortStatus extends OVXMessage implements Virtualizable {
     public void virtualize(final PhysicalSwitch sw) {
        // this.log.info("virtualize");
 
-
         Mappable map = sw.getMap();
         PhysicalPort p = sw.getPort(this.getPortStatus().getDesc().getPortNo().getShortPortNumber());
         if (p == null) {
@@ -72,16 +72,19 @@ public class OVXPortStatus extends OVXMessage implements Virtualizable {
 
         log.info("Received {} from switch {}", this.getOFMessage().toString(),
                 sw.getSwitchId());
-        LinkPair<PhysicalLink> pair = p.getLink();
+
+        FailOver.getInstance().processFailOver(sw, p, this);
+
+        /*LinkPair<PhysicalLink> pair = p.getLink();
         try {
             Set<Integer> vnets = map.listVirtualNetworks().keySet();
             for (Integer tenantId : vnets) {
-                /* handle vLinks/routes containing phyLink to/from this port. */
+                // handle vLinks/routes containing phyLink to/from this port.
                 if ((pair != null) && (pair.exists())) {
                     handleLinkChange(sw, map, pair, tenantId);
                 }
                 List<Map<Integer, OVXPort>> vports = p.getOVXPorts(tenantId);
-                /* cycle through all OVXPorts for this port. */
+                // cycle through all OVXPorts for this port.
                 Iterator<Map<Integer, OVXPort>> pItr = vports.iterator();
                 while (pItr.hasNext()) {
                     Map<Integer, OVXPort> mp = pItr.next();
@@ -94,22 +97,21 @@ public class OVXPortStatus extends OVXMessage implements Virtualizable {
                             continue;
                         }
                         if (isReason(OFPortReason.DELETE)) {
-                            /* try to remove OVXPort, vLinks, routes */
-                            vport.unMapHost();
-                            vport.handlePortDelete(this);
-                            sw.removePort(p);
+                            // try to remove OVXPort, vLinks, routes
+
+                            vport.setMobility(true);
+                            return; //ignore delete PortStatus
+
+                            //vport.unMapHost();
+                            //vport.handlePortDelete(this);
+                            //sw.removePort(p);
                         } else if (isReason(OFPortReason.MODIFY)) {
                             if (isState(OFPortState.LINK_DOWN)) {
-                                /* set ports as edge, but don't remove vLinks */
+                                // set ports as edge, but don't remove vLinks
                                 vport.handlePortDisable(this);
                             } else if (!isState(OFPortState.LINK_DOWN)
                                     && !p.getOfPort().getState().contains(OFPortState.LINK_DOWN)) {
-//!p.getSrcPort().getOfPort().getState().contains(OFPortState.LINK_DOWN)
-                                //plink.getSrcPort().getOfPort().getState().size() == 0)
-                                /*
-                                 * set links to non-edge, if it was previously
-                                 * disabled
-                                 */
+
                                 vport.handlePortEnable(this);
                             }
                         }
@@ -120,7 +122,7 @@ public class OVXPortStatus extends OVXMessage implements Virtualizable {
             log.warn("Couldn't process reason={} for PortStatus for port {}",
                     this.getPortStatus().getReason().toString(), p.getPortNumber());
             e.printStackTrace();
-        }
+        }*/
 
 
     }

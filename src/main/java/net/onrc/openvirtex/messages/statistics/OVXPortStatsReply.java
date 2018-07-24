@@ -36,6 +36,7 @@ import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFPortStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFPortStatsReply;
 import org.projectfloodlight.openflow.protocol.OFStatsType;
+import org.projectfloodlight.openflow.types.OFPort;
 
 public class OVXPortStatsReply extends OVXStatistics implements VirtualizableStatistic {
     Logger log = LogManager.getLogger(OVXPortStatsReply.class.getName());
@@ -55,7 +56,9 @@ public class OVXPortStatsReply extends OVXStatistics implements VirtualizableSta
         stats = new HashMap<Short, OFPortStatsEntry>();
         List<OFPortStatsEntry> statList = ((OFPortStatsReply)msg.getOFMessage()).getEntries();
         for(OFPortStatsEntry stat : statList) {
-            stats.put(stat.getPortNo().getShortPortNumber(), stat);
+            if(stat.getPortNo() != OFPort.LOCAL) {
+                stats.put(stat.getPortNo().getShortPortNumber(), stat);
+            }
         }
 
         sw.setPortStatistics(stats);

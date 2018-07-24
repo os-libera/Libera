@@ -57,6 +57,9 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
     private final PhysicalPort physicalPort;
     private boolean isActive;
 
+    //for VM test
+    private boolean isMobility;
+
     OFFactory factory;
 
     public OVXPort(final int tenantId, final PhysicalPort port,
@@ -104,6 +107,13 @@ public class OVXPort extends Port<OVXSwitch, OVXLink> implements Persistable {
                 .setSupported(this.supportedFeatures)
                 .setPeer(this.peerFeatures)
                 .build();
+
+
+        this.isMobility = false;
+    }
+
+    public void setMobility(boolean isMobility) {
+        this.isMobility = isMobility;
     }
 
     public void setConfig() {

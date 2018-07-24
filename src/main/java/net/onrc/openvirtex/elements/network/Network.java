@@ -113,6 +113,7 @@ public abstract class Network<T1 extends Switch, T2 extends Port, T3 extends Lin
      */
     @SuppressWarnings("unchecked")
     protected boolean removeLink(final T3 link) {
+
         this.linkSet.remove(link);
         final T1 srcSwitch = (T1) link.getSrcSwitch();
         final T1 dstSwitch = (T1) link.getDstSwitch();

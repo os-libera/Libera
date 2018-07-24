@@ -66,14 +66,14 @@ public class OVXActionSetField extends OVXAction implements VirtualizableAction 
 
         IPv4Address src = (IPv4Address)this.ofActionSetField.getField().getValue();
 
-        this.ofActionSetField = this.ofActionSetField.createBuilder()
+/*        this.ofActionSetField = this.ofActionSetField.createBuilder()
                 .setField(factory.oxms().ipv4Src(
                         IPv4Address.of(
                                 IPMapper.getPhysicalIp(
                                         sw.getTenantId(),
                                         src.getInt())
                                 )))
-                .build();
+                .build();*/
         approvedActions.add(this.ofActionSetField);
     }
 
@@ -81,14 +81,14 @@ public class OVXActionSetField extends OVXAction implements VirtualizableAction 
 
         IPv4Address src = (IPv4Address)this.ofActionSetField.getField().getValue();
 
-        this.ofActionSetField = this.ofActionSetField.createBuilder()
+/*        this.ofActionSetField = this.ofActionSetField.createBuilder()
                 .setField(factory.oxms().ipv4Dst(
                         IPv4Address.of(
                                 IPMapper.getPhysicalIp(
                                         sw.getTenantId(),
                                         src.getInt())
                         )))
-                .build();
+                .build();*/
         approvedActions.add(this.ofActionSetField);
     }
 

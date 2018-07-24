@@ -645,7 +645,11 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
                 final OVXPort dstPort = this.getNeighborPort(srcPort);
 
                 if (dstPort != null) {
+                    //log.info("dstPort != null SrcPort {}/{}", srcPort.getPhysicalPort().getParentSwitch().getSwitchName(),
+                    //        srcPort.getPhysicalPortNumber());
 
+                    //log.info("dstPort != null DstPort {}/{}", dstPort.getPhysicalPort().getParentSwitch().getSwitchName(),
+                    //        dstPort.getPhysicalPortNumber());
                      /*OVXPacketIn pi = new OVXPacketIn(
                              OFFactories.getFactory(sw.getOfVersion()).buildPacketIn()
                                     .setBufferId(OFBufferId.NO_BUFFER)
@@ -771,6 +775,9 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
 
     public void addControllers(ArrayList<String> ctrlUrls) {
         this.controllerUrls.addAll(ctrlUrls);
-
     }
+
+    public Map<OVXPort, Host> getHostMap() {
+        return this.hostMap;
+    };
 }

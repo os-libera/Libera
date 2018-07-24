@@ -24,21 +24,16 @@
  ******************************************************************************/
 package net.onrc.openvirtex.messages;
 
-import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.Mappable;
+import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.address.IPMapper;
-import net.onrc.openvirtex.elements.address.PhysicalIPAddress;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.*;
 
 import net.onrc.openvirtex.elements.host.Host;
-import net.onrc.openvirtex.elements.link.OVXLink;
-import net.onrc.openvirtex.elements.link.OVXLinkField;
-import net.onrc.openvirtex.elements.link.OVXLinkUtils;
 import net.onrc.openvirtex.elements.network.OVXNetwork;
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
@@ -46,6 +41,7 @@ import net.onrc.openvirtex.exceptions.AddressMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.packet.*;
+import net.onrc.openvirtex.services.vm.Migration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.*;
@@ -62,12 +58,10 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
     private Integer tenantId = null;
 
     public OVXPacketIn(final OVXPacketIn pktIn) {
-
         super(pktIn.getOFMessage().createBuilder().build());
     }
 
     public OVXPacketIn(OFMessage msg) {
-
         super(msg);
     }
 
@@ -122,8 +116,8 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
     }
 
     @Override
-    public void virtualize(final PhysicalSwitch sw) {
-        //this.log.info("virtualize");
+    public void virtualize(PhysicalSwitch sw) {
+//        this.log.info("virtualize");
         //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
 
         //OF_1.3일 경우 PACKET_IN으로 오는 데이터에 Ethernet Trailer가 붙어서 오는데 이 패킷을 OVX가
@@ -144,7 +138,6 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
         }
 
         OVXSwitch vSwitch = OVXMessageUtil.untranslateXid(this, sw);
-
         /*
          * Fetching port from the physical switch
          */
@@ -159,21 +152,41 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
                 inport = 0;
         }
 
-        this.log.debug("inport = " + inport);
+//        this.log.info("inport = " + inport);
 
         port = sw.getPort(inport);
 
         Mappable map = sw.getMap();
+        Match match;
 
-        Match match = OVXMessageUtil.loadFromPacket(
+        match = OVXMessageUtil.loadFromPacket(
                 this.getPacketIn().getData(),
                 inport,
                 sw.getOfVersion());
 
-        this.log.debug(match.toString());
+        if(match == null)
+            return;
 
+//        this.log.info("Match " + match.toString());
+
+        if (match.get(MatchField.ETH_TYPE) == EthType.IPv4 && match.get(MatchField.ETH_DST) == MacAddress.of("ff:ff:ff:ff:ff:ff")) {
+//            log.info("IPv4 Packets " + this.getPacketIn().toString());
+            //log.info("IPv4 Packets " + HexString.toHexString(this.getPacketIn().getData()));
+            //log.info(match.toString());
+            return;
+
+        }
+
+        this.log.info("virtualize");
+        this.log.info("Match " + match.toString());
+        
         if (this.port.isEdge()) {
+            log.info("this port is edge");
+            this.log.info(match.toString());
+
             this.tenantId = this.fetchTenantId(match, map, true);
+
+            //System.out.printf("TenantID %d\n", this.tenantId);
 
             if (this.tenantId == null) {
                 this.log.debug(
@@ -187,18 +200,26 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
             /*
              * Checks on vSwitch and the virtual port done in swndPkt.
              */
+
             vSwitch = this.fetchOVXSwitch(sw, vSwitch, map);
             this.ovxPort = this.port.getOVXPort(this.tenantId, 0);
+
             this.sendPkt(vSwitch, match, sw);
             this.learnHostIP(match, map);
-            this.learnAddresses(match);
+            this.learnAddresses(match, vSwitch);
             this.log.debug("Edge PacketIn {} sent to virtual network {}", this.getOFMessage().toString(),
                     this.tenantId);
-            return;
+             return;
+        }else{
+            if (match.get(MatchField.ETH_TYPE) == EthType.IPv4 && match.get(MatchField.ETH_DST) != MacAddress.of("ff:ff:ff:ff:ff:ff")) {
+                log.info("this port is not edge");
+                log.info(match.toString());
+            }
         }
 
-        if (match.get(MatchField.ETH_TYPE) == EthType.IPv4
+/*        if (match.get(MatchField.ETH_TYPE) == EthType.IPv4
                 || match.get(MatchField.ETH_TYPE) == EthType.ARP) {
+            this.log.info(match.get(MatchField.ETH_TYPE));
 
             PhysicalIPAddress srcIP = new PhysicalIPAddress(
                     match.get(MatchField.IPV4_SRC).getInt()
@@ -214,7 +235,7 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
             OVXLinkUtils lUtils = new OVXLinkUtils(eth.getSourceMAC(),
                     eth.getDestinationMAC());
 
-            if (lUtils.isValid()) {
+           if (lUtils.isValid()) {
                 OVXPort srcPort = port.getOVXPort(lUtils.getTenantId(),
                         lUtils.getLinkId());
 
@@ -265,9 +286,9 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
                     log.warn("VLAN virtual links not yet implemented.");
                     return;
                 }
-            }
+            }*/
 
-            if (match.get(MatchField.ETH_TYPE) == EthType.ARP) {
+            /*if (match.get(MatchField.ETH_TYPE) == EthType.ARP) {
                 // ARP packet
                 final ARP arp = (ARP) eth.getPayload();
                 this.tenantId = this.fetchTenantId(match, map, true);
@@ -314,8 +335,9 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
             this.log.info("IPv4 PacketIn {} sent to virtual network {}", this,
                     this.tenantId);
             return;
-        }
+        }*/
 
+/*
         this.tenantId = this.fetchTenantId(match, map, true);
         if (this.tenantId == null) {
             this.log.debug(
@@ -329,18 +351,23 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
 
         this.sendPkt(vSwitch, match, sw);
         this.log.info("Layer2 PacketIn {} sent to virtual network {}", this.getOFMessage(),
-                this.tenantId);
+                this.tenantId);*/
     }
 
     private void learnHostIP(Match match, Mappable map) {
         if(match.get(MatchField.IPV4_SRC) != null) {
             try {
                 OVXNetwork vnet = map.getVirtualNetwork(this.tenantId);
-                Host host = vnet.getHost(ovxPort);
+                Host host = vnet.getHost(this.ovxPort);
+
                 if (host != null) {
                     host.setIPAddress(match.get(MatchField.IPV4_SRC).getInt());
+
+                    //for proxy arp
+                    OVXMap.getInstance().addMacHost(host.getMac(), host);
                 } else {
-                    log.warn("Host not found on virtual port {}", ovxPort);
+                    //log.warn("Host not found on virtual port {}", ovxPort);
+                    //log.info(this.getPacketIn());
                 }
             } catch (NetworkMappingException e) {
                 log.warn("Failed to lookup virtual network {}", this.tenantId);
@@ -354,6 +381,7 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
 
     private void sendPkt(final OVXSwitch vSwitch, final Match match,
                          final PhysicalSwitch sw) {
+    	this.log.info("In sendPkt ...");
         if (vSwitch == null || !vSwitch.isActive()) {
             this.log.warn(
                     "Controller for virtual network {} has not yet connected "
@@ -376,12 +404,15 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
             else
                 inport = 0;
         }
-
+//        this.log.info("This port info : {}", this.port.toString());
+//        this.log.info("This ovxPort info : {}", this.ovxPort.toString());
+//        this.log.info("This ovxPort is Activated? : {}", this.ovxPort.isActive());
+        
         if (this.port != null && this.ovxPort != null
                 && this.ovxPort.isActive()) {
 
-            //this.log.info("before-----------------------------------------------------");
-            //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
+//            this.log.info("before-----------------------------------------------------");
+//            this.log.info(HexString.toHexString(this.getPacketIn().getData()));
 
             this.setInport(this.ovxPort.getPortNumber());
 
@@ -396,32 +427,45 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
                 );
             }
 
-            //this.log.info("after------------------------------------------------------");
-            //this.log.info(HexString.toHexString(this.getPacketIn().getData()));
+//            this.log.info("after------------------------------------------------------");
+//            this.log.info(HexString.toHexString(this.getPacketIn().getData()));
 
-            vSwitch.sendMsg(this, sw);
+            if(Migration.getInstance().byPassingPackets(sw, vSwitch, match, this.getPacketIn()) == false) {
+                this.log.info("sending to controller " + match.toString());
+                vSwitch.sendMsg(this, sw);
+            }
+            //vSwitch.sendMsg(this, sw);
         }else if (this.port == null) {
             log.error("The port {} doesn't belong to the physical switch {}", inport, sw.getName());
         }else if (this.ovxPort == null || !this.ovxPort.isActive()) {
-            log.error(
+        	this.log.info("Check point 1...");
+            /*log.error(
                     "Virtual port associated to physical port {} in physical switch {} for "
-                            + "virtual network {} is not defined or inactive",
-                    inport, sw.getName(), this.tenantId);
+                            + "virtual network {} is not defined or inactive {}",
+                    inport, sw.getName(), this.tenantId, match.toString());*/
+
+            Migration.getInstance().byPassingPackets(sw, vSwitch, match, this.getPacketIn());
+            Migration.getInstance().doMigration(sw, vSwitch, match, inport);
+
+        }else{
+            log.info("etcs " + match.toString());
         }
     }
 
-
-
-    private void learnAddresses(final Match match) {
+    private void learnAddresses(final Match match, OVXSwitch vSwitch) {
         if(match.get(MatchField.ETH_TYPE) == EthType.IPv4
             || match.get(MatchField.ETH_TYPE) == EthType.ARP) {
             if(match.get(MatchField.IPV4_SRC) != null) {
-                IPMapper.getPhysicalIp(this.tenantId, match.get(MatchField.IPV4_SRC).getInt());
+                //System.out.printf("learnAddresses IPV4_SRC %s\n",  IPv4Address.of(match.get(MatchField.IPV4_SRC).getInt()).toString());
+                IPMapper.getPhysicalIp(this.tenantId, match.get(MatchField.IPV4_SRC).getInt(), vSwitch);
+            }else if(match.get(MatchField.ARP_SPA) != null) {
+                IPMapper.getPhysicalIp(this.tenantId, match.get(MatchField.ARP_SPA).getInt(), vSwitch);
             }
 
-            if(match.get(MatchField.IPV4_DST) != null) {
-                IPMapper.getPhysicalIp(this.tenantId, match.get(MatchField.IPV4_DST).getInt());
-            }
+            /*if(match.get(MatchField.IPV4_DST) != null) {
+                //System.out.printf("learnAddresses IPV4_DST %s\n",  IPv4Address.of(match.get(MatchField.IPV4_DST).getInt()).toString());
+                IPMapper.getPhysicalIp(this.tenantId, match.get(MatchField.IPV4_DST).getInt(), vSwitch);
+            }*/
         }
     }
 

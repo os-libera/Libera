@@ -540,4 +540,11 @@ public class ShortestPath implements Routable {
             }
         }
     }
+
+
+    //for failover
+    public ShortestPath(List<PhysicalLink> edges) {
+        this.edges = edges;
+    }
+
 }

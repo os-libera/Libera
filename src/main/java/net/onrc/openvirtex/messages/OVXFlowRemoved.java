@@ -27,9 +27,12 @@ package net.onrc.openvirtex.messages;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
 import net.onrc.openvirtex.exceptions.MappingException;
+import net.onrc.openvirtex.services.forwarding.mpls.MplsForwarding;
+import net.onrc.openvirtex.services.path.physicalpath.PhysicalPathBuilder;
+import net.onrc.openvirtex.services.path.virtualpath.VirtualPath;
+import net.onrc.openvirtex.services.path.virtualpath.VirtualPathBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFFlowModFlags;
 import org.projectfloodlight.openflow.protocol.OFFlowRemoved;
 import org.projectfloodlight.openflow.protocol.OFMessage;
@@ -49,12 +52,39 @@ public class OVXFlowRemoved extends OVXMessage implements Virtualizable {
 
     @Override
     public void virtualize(final PhysicalSwitch sw) {
-        //this.log.info("virtualize");
+        this.log.debug("virtualize");
+
+        this.log.debug(this.getFlowRemoved().toString());
+
 
         long thisCookie = this.getFlowRemoved().getCookie().getValue();
-
-
         int tid = (int) ( thisCookie >> 32);
+
+
+        //for VM
+        Integer pathID = MplsForwarding.getInstance().getPathIDFromMatch(this.getFlowRemoved().getMatch(), sw, tid);
+        //Integer flowId = null;// = PhysicalPathBuilder.getInstance().getFlowID(this.getFlowRemoved().getCookie());
+
+        //log.info("Cookie {}", getFlowRemoved().getCookie().toString());
+
+        if(pathID != null) {
+            log.debug("PathID != null pathID [{}]", pathID);
+            VirtualPath vPath = VirtualPathBuilder.getInstance().getVirtualPath(pathID);
+            if (vPath != null) {
+                log.debug("vPath != null");
+                if (vPath.isMigrated()) {
+                    log.debug("PathID [{}] is migrated", pathID);
+                    return;
+                }else{
+                    log.debug("PathID [{}] is not migrated", pathID);
+                }
+            }else{
+                log.debug("vPath == null");
+                return;
+            }
+        }else{
+            log.info("PathID == null " + this.getFlowRemoved().toString());
+        }
 
         /* a PhysSwitch can be a OVXLink */
         if (!(sw.getMap().hasVirtualSwitch(sw, tid))) {
@@ -84,7 +114,7 @@ public class OVXFlowRemoved extends OVXMessage implements Virtualizable {
                                     .setIdleTimeout(fm.getFlowMod().getIdleTimeout())
                                     .build()
                     );
-
+                    log.info("send to flowremoved to controller {}", this.getFlowRemoved().toString());
                     vsw.sendMsg(this, sw);
                 }
 

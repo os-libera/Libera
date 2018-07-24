@@ -27,6 +27,9 @@ package net.onrc.openvirtex.elements.address;
 import java.util.LinkedList;
 import java.util.List;
 
+import net.onrc.openvirtex.elements.datapath.OVXSwitch;
+import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
+import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.messages.OVXMessageUtil;
 import net.onrc.openvirtex.messages.actions.OVXActionSetNwSrc;
 import net.onrc.openvirtex.messages.actions.OVXActionSetNwDst;
@@ -63,7 +66,42 @@ public final class IPMapper {
     private IPMapper() {
     }
 
-    public static Integer getPhysicalIp(Integer tenantId, Integer virtualIP) {
+    public static Integer getPhysicalIp(Integer tenantId, Integer virtualIP, OVXSwitch ovxSwitch) {
+
+        final Mappable map = OVXMap.getInstance();
+        final OVXIPAddress vip = new OVXIPAddress(tenantId, virtualIP);
+        try {
+            PhysicalIPAddress pip = null;
+            if (map.hasPhysicalIP(vip, tenantId)) {
+                pip = map.getPhysicalIP(vip, tenantId);
+
+                log.debug("tenantId[" + tenantId + "] has " + vip.toString()
+                        + " -> " + pip.toString());
+
+            } else {
+                List<PhysicalSwitch> pswitches = ovxSwitch.getMap().getPhysicalSwitches(ovxSwitch);
+                if(pswitches.size() == 1) { //singleswitch
+                    //bigswitch일 경우 수정해야함
+                    pip = new PhysicalIPAddress(pswitches.get(0).getSwitchLocID());
+
+
+                    log.info("Adding IP mapping {} -> {} for tenant {}", vip, pip,
+                            tenantId);
+                    map.addIP(pip, vip);
+                }else{  //bigswitch
+                    log.info("Need to implement for bigswitch");
+                }
+            }
+            return pip.getIp();
+        } catch (AddressMappingException e) {
+            log.error("Inconsistency in Physical-Virtual mapping : {}", e);
+        } catch (SwitchMappingException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /*public static Integer getPhysicalIp(Integer tenantId, Integer virtualIP) {
 
         final Mappable map = OVXMap.getInstance();
         final OVXIPAddress vip = new OVXIPAddress(tenantId, virtualIP);
@@ -93,12 +131,12 @@ public final class IPMapper {
             log.error("Inconsistency in Physical-Virtual mapping : {}", e);
         }
         return 0;
-    }
+    }*/
 
-    public static synchronized Match rewriteMatch(final Integer tenantId, final Match match) {
+     public static synchronized Match rewriteMatch(final Integer tenantId, final Match match) {
         Match temp = match.createBuilder().build();
-
-        if(match.get(MatchField.IPV4_SRC) != null)
+/*
+       if(match.get(MatchField.IPV4_SRC) != null)
         {
             temp = OVXMessageUtil.updateMatch(temp,
                     temp.createBuilder()
@@ -116,7 +154,7 @@ public final class IPMapper {
                             .setExact(MatchField.IPV4_DST,
                                     IPv4Address.of(getPhysicalIp(tenantId, match.get(MatchField.IPV4_DST).getInt())))
                     .build());
-        }
+        }*/
         return temp;
     }
 
@@ -137,7 +175,7 @@ public final class IPMapper {
 
         OFFactory factory = OFFactories.getFactory(match.getVersion());
 
-        if (match.get(MatchField.IPV4_SRC) != null) {
+        /*if (match.get(MatchField.IPV4_SRC) != null) {
             if ( match.get(MatchField.IPV4_SRC).getInt() != 0) {
                 OFActionSetField ofActionSetField  = factory.actions().buildSetField()
                         .setField(factory.oxms().ipv4Src(IPv4Address.of(
@@ -157,7 +195,7 @@ public final class IPMapper {
                         .build();
                 actions.add(ofActionSetField);
             }
-        }
+        }*/
         return actions;
     }
 
@@ -168,7 +206,7 @@ public final class IPMapper {
 
         OFActions action = OFFactories.getFactory(match.getVersion()).actions();
 
-        if (match.get(MatchField.IPV4_SRC) != null) {
+        /*if (match.get(MatchField.IPV4_SRC) != null) {
             if ( match.get(MatchField.IPV4_SRC).getInt() != 0) {
                 OFActionSetNwSrc ofActionSetNwSrc = action.buildSetNwSrc()
                         .setNwAddr(IPv4Address.of(getPhysicalIp(tenantId,
@@ -188,7 +226,7 @@ public final class IPMapper {
                 //final OVXActionSetNwDst dstAct = new OVXActionSetNwDst(ofActionSetNwDst);
                 actions.add(ofActionSetNwDst);
             }
-        }
+        }*/
         return actions;
     }
 
@@ -204,7 +242,7 @@ public final class IPMapper {
 
         OFFactory factory = OFFactories.getFactory(match.getVersion());
 
-        if (match.get(MatchField.IPV4_SRC) != null) {
+        /*if (match.get(MatchField.IPV4_SRC) != null) {
             if(match.get(MatchField.IPV4_SRC).getInt() != 0) {
                 OFActionSetField ofActionSetField  = factory.actions().buildSetField()
                         .setField(factory.oxms().ipv4Src(match.get(MatchField.IPV4_SRC)))
@@ -220,7 +258,7 @@ public final class IPMapper {
                         .build();
                 actions.add(ofActionSetField);
             }
-        }
+        }*/
         return actions;
     }
 
@@ -230,7 +268,7 @@ public final class IPMapper {
         OFActions action = OFFactories.getFactory(match.getVersion()).actions();
 
 
-        if (match.get(MatchField.IPV4_SRC) != null) {
+/*        if (match.get(MatchField.IPV4_SRC) != null) {
             if(match.get(MatchField.IPV4_SRC).getInt() != 0) {
                 OFActionSetNwSrc ofActionSetNwSrc = action.buildSetNwSrc()
                         .setNwAddr(match.get(MatchField.IPV4_SRC))
@@ -248,7 +286,7 @@ public final class IPMapper {
 //                final OVXActionSetNwDst dstAct = new OVXActionSetNwDst(ofActionSetNwDst);
                 actions.add(ofActionSetNwDst);
             }
-        }
+        }*/
          return actions;
     }
 }

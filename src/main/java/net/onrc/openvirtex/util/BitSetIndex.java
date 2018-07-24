@@ -57,7 +57,8 @@ public class BitSetIndex {
         HOST_ID((int) Math.pow(2, 32)),
         FLOW_COUNTER(getLinkMaxValue()),
         IP_ID((int) Math.pow(2, (32 - OpenVirteXController.getInstance().getNumberVirtualNets()))),
-        MPLS_ID((int) 0xFFFFF),
+        LOC_ID((int) Math.pow(2, 11)),
+        PATH_ID((int) Math.pow(2, 11)),
         DEFAULT(1000);
 
         protected Integer value;
@@ -93,8 +94,8 @@ public class BitSetIndex {
                     + FLOW_ID.getValue() + "\n" + "HOST_ID: "
                     + HOST_ID.getValue() + "\n" + "FLOW_COUNTER: "
                     + FLOW_COUNTER.getValue() + "\n" + "IP_ID: "
-                    + IP_ID.getValue() + "\n" + "MPLS_ID: "
-                    + MPLS_ID.getValue() + "DEFAULT: "
+                    + IP_ID.getValue() + "\n" + "LOC_ID: "
+                    + LOC_ID.getValue() + "DEFAULT: "
                     + DEFAULT.getValue();
         }
     }
@@ -104,6 +105,10 @@ public class BitSetIndex {
         this.type = type;
         // Set the first bit to true, in order to start each index from 1
         this.set.flip(0);
+    }
+
+    public Integer getIndex() {
+        return this.type.getValue();
     }
 
     public synchronized Integer getNewIndex() throws IndexOutOfBoundException {
@@ -133,24 +138,7 @@ public class BitSetIndex {
                     + type.getValue().toString() + "]");
         }
     }
-
-    public synchronized Integer getNewMplsLabel(Integer value)
-            throws IndexOutOfBoundException, DuplicateIndexException {
-        if (value < type.getValue()) {
-            if (!this.set.get(value)) {
-                this.set.flip(value);
-                return value;
-            } else {
-                throw new DuplicateIndexException("Lable " + value
-                        + " already used");
-            }
-        } else {
-            throw new IndexOutOfBoundException("No id available in range [0,"
-                    + type.getValue().toString() + "]");
-        }
-    }
-
-    public synchronized Integer getNewMplsLabel()
+    public synchronized Integer getNewLocId()
             throws IndexOutOfBoundException, DuplicateIndexException {
         Integer index = this.set.nextClearBit(0);
         try {

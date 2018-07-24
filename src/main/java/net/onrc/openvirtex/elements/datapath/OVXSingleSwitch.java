@@ -69,7 +69,7 @@ public class OVXSingleSwitch extends OVXSwitch {
     }
 
 
-    private PhysicalSwitch getPhySwitch(OVXPort inPort) {
+    public PhysicalSwitch getPhySwitch(OVXPort inPort) {
         PhysicalSwitch psw = null;
         if (inPort == null) {
             try {

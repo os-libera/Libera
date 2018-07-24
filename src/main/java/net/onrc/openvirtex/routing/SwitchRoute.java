@@ -507,7 +507,6 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
                 return;
             }
         } else {
-            log.info("prependRewriteActions");
             approvedActions.addAll(IPMapper.prependRewriteActions(
                     this.getTenantId(), fm.getFlowMod().getMatch()));
         }

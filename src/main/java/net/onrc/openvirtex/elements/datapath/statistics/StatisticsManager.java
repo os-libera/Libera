@@ -72,19 +72,19 @@ public class StatisticsManager implements TimerTask, OVXSendMsg {
 
     @Override
     public void run(Timeout timeout) throws Exception {
-        log.info("Collecting stats for {}", this.sw.getSwitchName());
+        //log.info("Collecting stats for {}", this.sw.getSwitchName());
         sendPortStatistics();
         sendFlowStatistics(0, (short) 0);
 
         if (!this.stopTimer) {
-            log.info("Scheduling stats collection in {} seconds for {}",
-                    this.refreshInterval, this.sw.getSwitchName());
+            //log.info("Scheduling stats collection in {} seconds for {}",
+                    //this.refreshInterval, this.sw.getSwitchName());
             timeout.getTimer().newTimeout(this, refreshInterval,
                     TimeUnit.SECONDS);
         }
     }
 
-    private void sendFlowStatistics(int tid, short port) {
+    public void sendFlowStatistics(int tid, short port) {
         int xid = (tid << 16) | port;
 
         OFFlowStatsRequest ofFlowStatsRequest = this.ofFactory.buildFlowStatsRequest()
@@ -99,7 +99,7 @@ public class StatisticsManager implements TimerTask, OVXSendMsg {
         sendMsg(req, this);
     }
 
-    private void sendPortStatistics() {
+    public void sendPortStatistics() {
         // xid 설정 안하나?
         OFPortStatsRequest ofPortStatsRequest = this.ofFactory.buildPortStatsRequest()
                 .setPortNo(OFPort.ANY)

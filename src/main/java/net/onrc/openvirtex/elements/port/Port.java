@@ -286,4 +286,15 @@ public class Port<T1 extends Switch, T2 extends Link>
     public DPIDandPort toDPIDandPort() {
         return new DPIDandPort(this.parentSwitch.getSwitchId(), this.portNumber);
     }
+
+    //for failover
+    public void udpateOfPort(OFPortDesc ofPortDesc) {
+        // config
+        this.config.clear();
+        this.config.addAll(ofPortDesc.getConfig());
+
+        //state
+        this.state.clear();
+        this.state.addAll(ofPortDesc.getState());
+    }
 }

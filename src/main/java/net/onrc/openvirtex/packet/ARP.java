@@ -49,11 +49,11 @@ public class ARP extends BasePacket {
     public static final short OP_RARP_REQUEST = 0x3;
     public static final short OP_RARP_REPLY = 0x4;
 
-    protected short hardwareType;
-    protected short protocolType;
-    protected byte hardwareAddressLength;
-    protected byte protocolAddressLength;
-    protected short opCode;
+    protected short hardwareType;       // 00 01
+    protected short protocolType;       // 08 00
+    protected byte hardwareAddressLength;   // 06
+    protected byte protocolAddressLength;   //04
+    protected short opCode;                 //request (1)
     protected byte[] senderHardwareAddress;
     protected byte[] senderProtocolAddress;
     protected byte[] targetHardwareAddress;

@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import net.onrc.openvirtex.elements.OVXMap;
 import net.onrc.openvirtex.elements.host.Host;
 import net.onrc.openvirtex.exceptions.DroppedMessageException;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
@@ -54,6 +55,16 @@ public class OVXFlowManager {
         this.flowCounter = new BitSetIndex(IndexType.FLOW_COUNTER);
         this.tenantId = tenantId;
         this.hostList = hostList;
+    }
+
+    public Integer getFlowValues(final byte[] srcMac, final byte[] dstMac)
+            throws IndexOutOfBoundException {
+        // TODO: Optimize flow numbers
+        final BigInteger dualMac = new BigInteger(ArrayUtils.addAll(srcMac,
+                dstMac));
+        Integer flowId = this.flowValues.inverse().get(dualMac);
+
+        return flowId;
     }
 
     public synchronized Integer storeFlowValues(final byte[] srcMac, final byte[] dstMac)

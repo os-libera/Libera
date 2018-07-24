@@ -196,8 +196,6 @@ public class OVXFlowTable implements FlowTable {
      */
     private boolean doFlowModAdd(OVXFlowMod fm) {
         this.log.debug("doFlowModAdd");
-        //this.log.info(fm.getOFMessage().toString());
-
 
         if (fm.getFlowMod().getFlags().contains(OFFlowModFlags.CHECK_OVERLAP)){
             //System.out.println(" OFPFF_CHECK_OVERLAP");
@@ -208,16 +206,8 @@ public class OVXFlowTable implements FlowTable {
                 fe.setOVXFlowMod(fmod);
                 int res = fe.compare(fm.getFlowMod().getMatch(), false);
 
-                //System.out.println("------------------------");
-                //System.out.println(res);
-
-                //System.out.println(fm.getFlowMod().getPriority() + " " + fe.getPriority());
-
-//                this.log.info("res : " + res);
                 if ((res != OVXFlowEntry.DISJOINT)
                         & (fm.getFlowMod().getPriority() == fe.getPriority())) {
-
-                    //System.out.println("true");
 
                     this.vswitch.sendMsg(OVXMessageUtil.makeErrorMsg(
                             OFFlowModFailedCode.OVERLAP, fm),
@@ -353,7 +343,8 @@ public class OVXFlowTable implements FlowTable {
         if (cookie == null) {
             cookie = this.getCookie();
         }
-        log.debug("getCookie Cookie = " + U64.of(cookie).toString());
+        log.debug("[{}]/[{}]/[{}]", U64.of(cookie).toString(), flowmod.getFlowMod().getCookie().toString(),
+                U32.of(flowmod.hashCode()));
         log.debug("HashCode = " + U32.of(flowmod.hashCode()).toString());
         log.debug(flowmod.getFlowMod().toString());
 

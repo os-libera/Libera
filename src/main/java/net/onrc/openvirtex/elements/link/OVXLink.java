@@ -380,8 +380,6 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
                 .build()
         );
 
-        //fm.setCookie(cookie << 32);
-
         if (fm.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
             fm.modifyMatch(
                     IPMapper.rewriteMatch(
@@ -407,8 +405,7 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         try {
             final OVXLink link = this.map.getVirtualNetwork(this.tenantId)
                     .getLink(this.srcPort, this.dstPort);
-            for (final PhysicalLink phyLink : OVXMap.getInstance()
-                    .getPhysicalLinks(link)) {
+            for (final PhysicalLink phyLink : OVXMap.getInstance().getPhysicalLinks(link)) {
                 plinks.add(new PhysicalLink(phyLink.getDstPort(), phyLink
                         .getSrcPort()));
             }
