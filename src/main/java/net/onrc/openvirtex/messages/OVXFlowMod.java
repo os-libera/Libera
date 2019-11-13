@@ -1,35 +1,41 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.messages;
 
 import java.util.*;
 
+
+import net.onrc.openvirtex.api.service.handlers.tenant.SetOVXmode;
+import net.onrc.openvirtex.elements.OVXMap;
+import net.onrc.openvirtex.elements.address.IPAddress;
+import net.onrc.openvirtex.elements.address.IPMapper;
 import net.onrc.openvirtex.elements.datapath.FlowTable;
 import net.onrc.openvirtex.elements.datapath.OVXFlowTable;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
+import net.onrc.openvirtex.elements.host.Host;
+import net.onrc.openvirtex.elements.link.OVXLink;
+import net.onrc.openvirtex.elements.link.OVXLinkUtils;
 import net.onrc.openvirtex.elements.port.OVXPort;
+import net.onrc.openvirtex.elements.OVXmodes.*;
 import net.onrc.openvirtex.exceptions.*;
 import net.onrc.openvirtex.messages.actions.*;
 import net.onrc.openvirtex.protocol.OVXMatch;
@@ -41,13 +47,19 @@ import net.onrc.openvirtex.services.path.virtualpath.VirtualPathBuilder;
 import net.onrc.openvirtex.util.OVXUtil;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
-
+import net.onrc.openvirtex.elements.datapath.PhysicalFlowTable;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetDlSrc;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
+import static org.projectfloodlight.openflow.protocol.match.MatchField.IPV4_DST;
+import static org.projectfloodlight.openflow.protocol.match.MatchField.IPV4_SRC;
+
 
 public class OVXFlowMod extends OVXMessage implements Devirtualizable {
 
@@ -56,6 +68,7 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
     private OVXSwitch sw = null;
     private final List<OFAction> approvedActions = new LinkedList<OFAction>();
     private OFFlowMod originalFlowMod = null;
+
 
     private long ovxCookie = -1;
 
@@ -67,12 +80,19 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
         return (OFFlowMod)this.getOFMessage();
     }
 
+
+
     public VirtualPath virtualPath = null;
+
+
 
     @Override
     public synchronized void devirtualize(final OVXSwitch sw) {
+        this.log.info("devirtualize start");
+        this.log.info(this.getFlowMod().toString());
+        //this.log.info(this.getOFMessage().toString());
 
-        //this.log.info("Before " + this.getOFMessage().toString());
+
         List<OFAction> laction = this.getFlowMod().getActions();
         if(laction != null) {
             if(laction.size() == 1) {
@@ -93,12 +113,10 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
             }
         }
 
-         // Drop LLDP-matching messages sent by some applications
+        // Drop LLDP-matching messages sent by some applications
         if (this.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.LLDP) {
             return;
         }
-
-
 
 
         this.originalFlowMod = this.getFlowMod().createBuilder().build();
@@ -113,27 +131,30 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
         }
 
 
-        //OFMatch에서 inport의 기본값은 0으로 설정되기 때문, 그러나 OpenFlowj에서는 MatchField가 존재하지 않으면
-        //필드 자체가 없기 때문에 inport값을 알 수 없다.
-        //ONOS인 경우 스위치가 연결되면 기본적인 설정 FlowMod 메시지를 보낸다(ARP, LLDP, IPv4정보를 Controller로 보내는 설정)
-        //거기엔 in_port 정보가 없다 추후 이부분의 루틴 구현해야함
+        //OFMatch?? inport? ???? 0?? ???? ??, ??? OpenFlowj??? MatchField? ???? ???
+        //?? ??? ?? ??? inport?? ? ? ??.
+        //ONOS? ?? ???? ???? ???? ?? FlowMod ???? ???(ARP, LLDP, IPv4??? Controller? ??? ??)
+        //??? in_port ??? ?? ?? ???? ?? ?????
 
         short inport = 0;
 
         if(this.getFlowMod().getMatch().get(MatchField.IN_PORT) != null)
         {
-           inport = this.getFlowMod().getMatch()
-                   .get(MatchField.IN_PORT).getShortPortNumber();
+            inport = this.getFlowMod().getMatch()
+                    .get(MatchField.IN_PORT).getShortPortNumber();
         }
         boolean pflag = ft.handleFlowMods(this.clone());
+
 
         OVXMatch ovxMatch = new OVXMatch(this.getFlowMod().getMatch());
 
         ovxCookie = ((OVXFlowTable) ft).getCookie(this, false);
 
-        //log.info("FlowMod Original Cookie{} {}", this.getFlowMod().getCookie().toString(), this.getFlowMod().hashCode());
 
-        ovxMatch.setOVXSwitch(sw);
+        if(OVXmodeHandler.getOVXmode()==1){
+            ovxMatch.setOVXSwitch(sw);}
+
+
         ovxMatch.setCookie(ovxCookie);
 
         this.setOFMessage(this.getFlowMod().createBuilder()
@@ -141,6 +162,29 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
                 .build()
         );
 
+
+        if(OVXmodeHandler.getOVXmode() == 2) {
+            //log.info("AggFlow mode");
+            //AggFlow: If match received by controller has only mac address, write ip address on match
+            try {
+                if (ovxMatch.getMatch().get(MatchField.IPV4_SRC).getInt() == 0 || ovxMatch.getMatch().get(MatchField.IPV4_DST).getInt() == 0) {
+                    net.onrc.openvirtex.elements.address.IPAddress srcIP = getHostIP(getHostbyMACAddress(ovxMatch.getMatch().get(MatchField.ETH_SRC).getBytes()));
+                    IPAddress dstIP = getHostIP(getHostbyMACAddress(ovxMatch.getMatch().get(MatchField.ETH_DST).getBytes()));
+                    if (srcIP != null && dstIP != null) {
+                        this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                .setExact(MatchField.IPV4_SRC, IPv4Address.of(srcIP.getIp()))
+                                .build()));
+                        this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                .setExact(MatchField.IPV4_DST, IPv4Address.of(dstIP.getIp()))
+                                .build()));
+                    }
+                }
+            } catch (NullPointerException e) {
+                log.info("match received by controller= {} , mac value ={}",
+                        ovxMatch.getMatch(), ovxMatch.getMatch().get(MatchField.IPV4_DST).getInt(), ovxMatch.getMatch().get(MatchField.IPV4_SRC).getInt());
+                log.info("check fetching get host, srcIP={}", getHostIP(getHostbyMACAddress(ovxMatch.getMatch().get(MatchField.ETH_SRC).getBytes())));
+            }
+        }
 
 
         for (final OFAction act : this.getFlowMod().getActions()) {
@@ -160,37 +204,43 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
                 // TODO perhaps send error message to controller
                 return;
             } catch (final NullPointerException e) {
-                this.log.info("Action {} could not be supported", act);
+                this.log.info("Action {} could not be supported={}", act);
                 return;
             }
         }
 
-        //added for MPLS
-        switch(this.getFlowMod().getCommand()) {
-            case ADD:
-                if(ovxMatch.getFlowId() != null ) {
-                    this.virtualPath = VirtualPathBuilder.getInstance().buildVirtualPath(ovxMatch, originalFlowMod);
 
-                    if(this.virtualPath == null)
+        if(OVXmodeHandler.getOVXmode() == 1) {
+            //log.info("LiteVisor mode in flowmod");
+            //LiteVisor: added for MPLS
+            switch (this.getFlowMod().getCommand()) {
+                case ADD:
+                    if (ovxMatch.getFlowId() != null) {
+                       // log.info("Virtual path ADD case");
+                        this.virtualPath = VirtualPathBuilder.getInstance().buildVirtualPath(ovxMatch, originalFlowMod);
+
+                        if (this.virtualPath == null)
+                            return;
+                    } else {
                         return;
-                }else{
-                    return;
-                }
-                break;
-            case MODIFY:
-            case MODIFY_STRICT:
-                break;
-            case DELETE:
-            case DELETE_STRICT:
-                this.originalFlowMod = VirtualPathBuilder.getInstance().removeVirtualPath(this.originalFlowMod, ovxMatch);
-                if(this.originalFlowMod == null) {
-                    log.info("Matching FlowMod message does not exist");
-                    return;
-                }
-                //Match temp = MplsManager.getInstance().DeleteMplsActions(ovxMatch);
+                    }
+                    break;
+                case MODIFY:
+                case MODIFY_STRICT:
+                    break;
+                case DELETE:
+                case DELETE_STRICT:
+                    this.originalFlowMod = VirtualPathBuilder.getInstance().removeVirtualPath(this.originalFlowMod, ovxMatch);
+                    if (this.originalFlowMod == null) {
+                        log.info("Matching FlowMod message does not exist");
+                        return;
+                    }
+                    //Match temp = MplsManager.getInstance().DeleteMplsActions(ovxMatch);
 
-                break;
+                    break;
+            }
         }
+
 
         final OVXPort ovxInPort = sw.getPort(inport);
         this.setOFMessage(this.getFlowMod().createBuilder()
@@ -200,10 +250,11 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
 
         if (ovxInPort == null) {
             if(this.getFlowMod().getMatch().isFullyWildcarded(MatchField.IN_PORT)) {
-
                 for (OVXPort iport : sw.getPorts().values()) {
                     try {
-                        prepAndSendSouth(iport, pflag, ovxMatch);
+                        if(OVXmodeHandler.getOVXmode() == 1) {
+                            prepAndSendSouth(iport, pflag, ovxMatch);
+                        } else { prepAndSendSouth(iport, pflag);}
                     } catch (IndexOutOfBoundException e) {
                         e.printStackTrace();
                     }
@@ -218,12 +269,18 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
         } else {
 
             try {
-                prepAndSendSouth(ovxInPort, pflag, ovxMatch);
+                if(OVXmodeHandler.getOVXmode() == 1) {
+                    prepAndSendSouth(ovxInPort, pflag, ovxMatch);
+                } else {
+                    prepAndSendSouth(ovxInPort, pflag); }
             } catch (IndexOutOfBoundException e) {
                 e.printStackTrace();
             }
         }
+
     }
+
+
 
     public void modifyMatch(Match match)
     {
@@ -233,7 +290,10 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
         );
     }
 
+
+    //LiteVisor PrepAndsendSouth method called
     private void prepAndSendSouth(OVXPort inPort, boolean pflag, OVXMatch ovxMatch) throws IndexOutOfBoundException {
+
         if (!inPort.isActive()) {
             log.warn("Virtual network {}: port {} on switch {} is down.",
                     sw.getTenantId(), inPort.getPortNumber(),
@@ -251,95 +311,25 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
         );
 
         OVXMessageUtil.translateXid(this, inPort);
-        /*try {
-            if (inPort.isEdge()) {
-                //this.prependRewriteActions();
-            } else {
-
-                this.modifyMatch(
-                        IPMapper.rewriteMatch(
-                                sw.getTenantId(),
-                                this.getMplsFlowMod().getMatch()
-                        )
-                );
-
-                // TODO: Verify why we have two send points... and if this is
-                // the right place for the match rewriting
-                 if (inPort != null
-                        && inPort.isLink()
-                        && this.getMplsFlowMod().getMatch().get(MatchField.ETH_DST) != null
-                        && this.getMplsFlowMod().getMatch().get(MatchField.ETH_SRC) != null
-                ) {
-                    // rewrite the OFMatch with the values of the link
-                    OVXPort dstPort = sw.getMap()
-                            .getVirtualNetwork(sw.getTenantId())
-                            .getNeighborPort(inPort);
-
-                    OVXLink link = sw.getMap()
-                            .getVirtualNetwork(sw.getTenantId())
-                            .getLink(dstPort, inPort);
-
-                   if (inPort != null && link != null) {
-                        try {
-
-                            Integer flowId = sw.getMap()
-                                    .getVirtualNetwork(sw.getTenantId())
-                                    .getFlowManager()
-                                    .getFlowId(
-                                            this.getMplsFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
-                                            this.getMplsFlowMod().getMatch().get(MatchField.ETH_DST).getBytes()
-                                    );
-
-
-                            OVXLinkUtils lUtils = new OVXLinkUtils(
-                                    sw.getTenantId(), link.getLinkId(), flowId);
-
-                            this.modifyMatch(
-                                    lUtils.rewriteMatch(this.getMplsFlowMod().getMatch())
-                            );
-
-                        } catch (IndexOutOfBoundException e) {
-                            log.error(
-                                    "Too many host to generate the flow pairs in this virtual network {}. "
-                                            + "Dropping flow-mod {} ",
-                                    sw.getTenantId(), this);
-                            throw new DroppedMessageException();
-                        }
-                    }
-                }
-            }
-        } catch (NetworkMappingException e) {
-            log.warn(
-                    "OVXFlowMod. Error retrieving the network with id {} for flowMod {}. Dropping packet...",
-                    this.sw.getTenantId(), this);
-        } catch (DroppedMessageException e) {
-            log.warn(
-                    "OVXFlowMod. Error retrieving flowId in network with id {} for flowMod {}. Dropping packet...",
-                    this.sw.getTenantId(), this);
-        }*/
 
         this.setOFMessage(this.getFlowMod().createBuilder()
-                .setActions(this.approvedActions)
-                .build()
-        );
+                    .setActions(this.approvedActions)
+                    .build());
 
         if (pflag) {
-
-            if(!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
+            if (!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
                 this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);
-
-
-
-            switch(this.getFlowMod().getCommand()) {
-                case ADD:
-                    if(ovxMatch.getFlowId() != null) {
+                switch (this.getFlowMod().getCommand()) {
+                    case ADD:
+                            //log.info("ADD case");
+                            if (ovxMatch.getFlowId() != null) {
                         /*this.setOFMessage(PhysicalPathBuilder.getInstance().buildPhysicalPath(
                                 this.virtualPath, this.originalFlowMod, this.getMplsFlowMod(), ovxMatch.getSwitchType(),
                                 inPort.getPhysicalPort().getParentSwitch()));*/
 
-                        PhysicalPath pPath = PhysicalPathBuilder.getInstance().buildPhysicalPath(
-                                this.virtualPath, this.originalFlowMod, this.getFlowMod(), ovxMatch.getSwitchType(),
-                                inPort.getPhysicalPort().getParentSwitch());
+                                PhysicalPath pPath = PhysicalPathBuilder.getInstance().buildPhysicalPath(
+                                        this.virtualPath, this.originalFlowMod, this.getFlowMod(), ovxMatch.getSwitchType(),
+                                        inPort.getPhysicalPort().getParentSwitch());
 
                         /*this.setOFMessage(
                                 PhysicalPathBuilder.getInstance().buildPhysicalPath(
@@ -347,51 +337,329 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
                                         inPort.getPhysicalPort().getParentSwitch())
                         );*/
 
-                        if(this.virtualPath.isBuild()) {
-                            //pPath.sendSouth();
-                            if(pPath.findPhysicalPath()) {
-                                pPath.addPathIDtoPhysicalSwitch();
-                                MplsForwarding.getInstance().addMplsActions(pPath);
-                                pPath.sendSouth();
+                                if (this.virtualPath.isBuild()) {
+                                    //pPath.sendSouth();
+                                    if (pPath.findPhysicalPath()) {
+                                        pPath.addPathIDtoPhysicalSwitch();
+                                        MplsForwarding.getInstance().addMplsActions(pPath);
+                                        pPath.sendSouth();
 
-                                //this.virtualPath.checkOverlapNodes();
+                                    }
+                                }
+
+                            } else {
+                                return;
+                            }
+                            break;
+                    case DELETE:
+                    case DELETE_STRICT:
+
+                            if (ovxMatch.getFlowId() != null) {
+
+                                OFFlowMod ofFlowMod = PhysicalPathBuilder.getInstance().removePhysicalPath(this.originalFlowMod, ovxMatch);
+                                if (ofFlowMod != null) {
+                                    this.modifyMatch(ofFlowMod.getMatch());
+                                } else {
+                                }
+                                sw.sendSouth(this, inPort);
+                            } else {
+                                return;
+                            }
+
+                            break;
+                    }
+                }
+    }
+
+
+
+    // prepAndSendSOuth for OVX or AggFlow mode
+    private void prepAndSendSouth(OVXPort inPort, boolean pflag) {
+        // try{
+        if (!inPort.isActive()) {
+            log.warn("Virtual network {}: port {} on switch {} is down.",
+                    sw.getTenantId(), inPort.getPortNumber(),
+                    sw.getSwitchName());
+            return;
+        }
+
+        this.modifyMatch(
+                OVXMessageUtil.updateMatch(
+                        this.getFlowMod().getMatch(),
+                        this.getFlowMod().getMatch().createBuilder()
+                                .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                .build()
+                )
+        );
+
+        OVXMessageUtil.translateXid(this, inPort);
+
+        //AggFlow: Get the physicalFlowTable.
+        PhysicalFlowTable phyFlowTable = inPort.getPhysicalPort().getParentSwitch().getEntrytable();
+
+            boolean isedgeOut = true;
+            boolean duflag = false;
+
+
+            try {
+                if (inPort.isEdge()) {
+                    if (OVXmodeHandler.getOVXmode() == 0) {
+                        this.prependRewriteActions();
+                    } else {
+                        //log.info("Inport is edge, calling prependRewriteActions method:-");
+
+
+
+                       /* OVXPort dstPort = sw.getMap()
+                                .getVirtualNetwork(sw.getTenantId())
+                                .getNeighborPort(inPort);
+
+                        OVXLink link = sw.getMap()
+                                .getVirtualNetwork(sw.getTenantId())
+                                .getLink(dstPort, inPort);
+
+                        Integer flowId = sw.getMap()
+                                .getVirtualNetwork(sw.getTenantId())
+                                .getFlowManager()
+                                .getFlowId(
+                                        this.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                        this.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes());
+
+
+                        OVXLinkUtils lUtils = new OVXLinkUtils(sw.getTenantId(), link.getLinkId(), flowId, link.getSrcSwitch());
+*/
+                        if (this.getOFMessage().getVersion() == OFVersion.OF_10) {
+
+                         /*  this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.IN_PORT)
+                                    .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                    .build();
+
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_SRC)
+                                    .setExact(MatchField.ETH_SRC, MacAddress.of(lUtils.getSrcMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_DST)
+                                    .setExact(MatchField.ETH_DST, MacAddress.of(lUtils.getDstMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_TYPE)
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .build();
+*/
+                            this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                    .setExact(MatchField.IN_PORT, this.getFlowMod().getMatch().get(MatchField.IN_PORT))
+                                    .setExact(MatchField.ETH_SRC, this.getFlowMod().getMatch().get(MatchField.ETH_SRC))
+                                    .setExact(MatchField.ETH_DST, this.getFlowMod().getMatch().get(MatchField.ETH_DST))
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .setExact(MatchField.IPV4_SRC, this.getFlowMod().getMatch().get(IPV4_SRC))
+                                    .setExact(MatchField.IPV4_DST, this.getFlowMod().getMatch().get(IPV4_DST))
+                                    .build()));
+
+                            OFAction action = this.factory.actions()
+                                    .buildSetDlSrc()
+                                    .setDlAddr(MacAddress.of(sw.getTenantId()))
+                                    .build();
+                            this.approvedActions.add(0, action);
+                            log.info("approved action in OF1.0 = {}", approvedActions);
+
+                        } else {
+                            /*this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.IN_PORT)
+                                    .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_SRC)
+                                    .wildcard(MatchField.ETH_DST)
+                                    .setExact(MatchField.ETH_SRC, MacAddress.of(lUtils.getSrcMac().getBytes()))
+                                    .setExact(MatchField.ETH_DST, MacAddress.of(lUtils.getDstMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_TYPE)
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                   .build();
+*/
+                            this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                    .setExact(MatchField.IN_PORT, this.getFlowMod().getMatch().get(MatchField.IN_PORT))
+                                    .setExact(MatchField.ETH_SRC, this.getFlowMod().getMatch().get(MatchField.ETH_SRC))
+                                    .setExact(MatchField.ETH_DST, this.getFlowMod().getMatch().get(MatchField.ETH_DST))
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .setExact(MatchField.IPV4_SRC, this.getFlowMod().getMatch().get(IPV4_SRC))
+                                    .setExact(MatchField.IPV4_DST, this.getFlowMod().getMatch().get(IPV4_DST))
+                                    .build()));
+                            OFActionSetField ofActionSetField = this.factory
+                                    .actions()
+                                    .buildSetField()
+                                    .setField(this.factory.oxms().ethSrc(MacAddress.of(sw.getTenantId())))
+                                    .build();
+                            this.approvedActions.add(0, ofActionSetField);
+                            log.info("approved action in OF1.3 = {}", approvedActions);
+
+
+
+
+                        }
+                    }
+                } else {
+                    log.info("Inport is not edge");
+
+                    if (OVXmodeHandler.getOVXmode() == 0) {
+                        this.modifyMatch(
+                                IPMapper.rewriteMatch(
+                                        sw.getTenantId(),
+                                        this.getFlowMod().getMatch()
+                                )
+                        );
+                    }
+                    // TODO: Verify why we have two send points... and if this is
+                    // the right place for the match rewriting
+                    if (inPort != null
+                            && inPort.isLink()
+                            && this.getFlowMod().getMatch().get(MatchField.ETH_DST) != null
+                            && this.getFlowMod().getMatch().get(MatchField.ETH_SRC) != null
+                            ) {
+
+                        OVXPort dstPort = sw.getMap()
+                                .getVirtualNetwork(sw.getTenantId())
+                                .getNeighborPort(inPort);
+
+                        OVXLink link = sw.getMap()
+                                .getVirtualNetwork(sw.getTenantId())
+                                .getLink(dstPort, inPort);
+                        // rewrite the OFMatch with the values of the link
+
+                        if (inPort != null && link != null) {
+
+
+                            Integer flowId = sw.getMap()
+                                    .getVirtualNetwork(sw.getTenantId())
+                                    .getFlowManager()
+                                    .getFlowId(
+                                            this.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
+                                            this.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes());
+
+
+                            if (OVXmodeHandler.getOVXmode() == 0) {
+                                OVXLinkUtils lUtils = new OVXLinkUtils(sw.getTenantId(), link.getLinkId(), flowId);
+
+                                //this.log.info("before " + this.getFlowMod().getMatch().toString());
+
+                                this.modifyMatch(lUtils.rewriteMatch(this.getFlowMod().getMatch()));
+
+                                //this.log.info("after " + this.getFlowMod().getMatch().toString());
+                            }
+
+                            //AggFlow:
+                            else {
+
+                                OVXLinkUtils lUtils1 = new OVXLinkUtils(sw.getTenantId(), link.getLinkId(), flowId, link.getSrcSwitch());
+                                this.modifyMatch(lUtils1.rewriteMatch(this.getFlowMod().getMatch()));
+
+
+                                //AggFlow:  Check outPort is edge
+                                //When outPort is edge, then check all conditions.
+                                isedgeOut = isEdgeOutport();
+                                if (isedgeOut) {
+                                    //True-->set MAC as (source's MAC, des's MAC) and IP as (src's IP, dst's IP)
+                                    //log.info("outPort is edge, check all conditions:-");
+
+                                    this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                            .setExact(MatchField.IN_PORT, this.getFlowMod().getMatch().get(MatchField.IN_PORT))
+                                            .setExact(MatchField.ETH_SRC, this.getFlowMod().getMatch().get(MatchField.ETH_SRC))
+                                            .setExact(MatchField.ETH_DST, this.getFlowMod().getMatch().get(MatchField.ETH_DST))
+                                            .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                            .setExact(MatchField.IPV4_SRC, this.getFlowMod().getMatch().get(IPV4_SRC))
+                                            .setExact(MatchField.IPV4_DST, this.getFlowMod().getMatch().get(IPV4_DST))
+                                            .build()));
+
+
+                                   /* this.getFlowMod().getMatch().createBuilder()
+                                            .wildcard(MatchField.IN_PORT)
+                                            .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                            .build();
+
+                                    this.getFlowMod().getMatch().createBuilder()
+                                            .wildcard(MatchField.ETH_SRC)
+                                            .wildcard(MatchField.ETH_DST)
+                                            .setExact(MatchField.ETH_SRC, MacAddress.of(lUtils1.getSrcMac().getBytes()))
+                                            .setExact(MatchField.ETH_DST, MacAddress.of(lUtils1.getDstMac().getBytes()))
+                                            .build();
+
+                                    this.getFlowMod().getMatch().createBuilder()
+                                            .wildcard(MatchField.ETH_TYPE)
+                                            .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                            .build();
+
+*/
+
+
+
+                                    //log.info("match when inport not edge after setting wildcard = {}", this.getFlowMod().getMatch());
+                                }
                             }
                         }
-
-                        //sw.sendSouth(this, inPort);
-
-                    }else{
-                        return;
                     }
-                    break;
-                case DELETE:
-                case DELETE_STRICT:
-
-                    if(ovxMatch.getFlowId() != null) {
-                        //this.log.info("------------- {}", this.getOFMessage().toString());
-
-
-                        OFFlowMod ofFlowMod = PhysicalPathBuilder.getInstance().removePhysicalPath(this.originalFlowMod, ovxMatch);
-                        if (ofFlowMod != null) {
-                            //this.log.info("ofFlowMod != null");
-                            this.modifyMatch(ofFlowMod.getMatch());
-                        } else {
-                            //this.log.info("ofFlowMod == null");
-                        }
-
-                        sw.sendSouth(this, inPort);
-
-                        //this.log.info("+++++++++++++ {}", this.getOFMessage().toString());
-                    }else{
-                        return;
-                    }
-
-                    break;
+                }
+            }catch (NetworkMappingException e) {
+                log.warn(
+                        "OVXFlowMod. Error retrieving the network with id {} for flowMod {}. Dropping packet...",
+                        this.sw.getTenantId(), this);
+            } catch (DroppedMessageException e) {
+                log.warn(
+                        "OVXFlowMod. Error retrieving flowId in network with id {} for flowMod {}. Dropping packet...",
+                        this.sw.getTenantId(), this);
+            } catch (IndexOutOfBoundException e) {
+                e.printStackTrace();
             }
 
-        }
+            if(OVXmodeHandler.getOVXmode()==0) {
+                this.setOFMessage(this.getFlowMod().createBuilder()
+                        .setActions(this.approvedActions)
+                        .build());
+                if (pflag) {
+                    if(!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM))
+                        this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);
+                    sw.sendSouth(this, inPort);
+                }
+            } else{
+                //AggFlow: In core, check that rule is duplicated.
+                if (!isedgeOut) {
+                    duflag = phyFlowTable.checkduplicate(this);
+                    this.log.info("DuFlag is {}", duflag);
+                }
+
+                this.setOFMessage(this.getFlowMod().createBuilder()
+                        .setActions(this.approvedActions)
+                        .build()
+                );
+                //Rule is not installed in physical switch, then send south.
+
+                if (!duflag && pflag) {
+
+                    if (!this.getFlowMod().getFlags().contains(OFFlowModFlags.SEND_FLOW_REM)) {
+                        this.getFlowMod().getFlags().add(OFFlowModFlags.SEND_FLOW_REM);}
+                        sw.sendSouth(this, inPort);
+
+                }
+            }
     }
-/*
+
+
+
+
     private void prependRewriteActions() {
         if(this.getOFMessage().getVersion() == OFVersion.OF_10)
             prependRewriteActionsVer10();
@@ -401,49 +669,49 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
     }
 
     private void prependRewriteActionsVer13() {
-        if(this.getMplsFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
             OFActionSetField ofActionSetField = this.factory.actions().buildSetField()
                     .setField(this.factory.oxms().ipv4Src(IPv4Address.of(
-                            IPMapper.getPhysicalIp(
-                                    sw.getTenantId(),
-                                    this.getMplsFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt()))))
+                            IPMapper.getPhysicalIp(sw.getTenantId(),
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt()))))
                     .build();
             this.approvedActions.add(0, ofActionSetField);
         }
 
-        if(this.getMplsFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
             OFActionSetField ofActionSetField = this.factory.actions().buildSetField()
                     .setField(this.factory.oxms().ipv4Dst(IPv4Address.of(
                             IPMapper.getPhysicalIp(
                                     sw.getTenantId(),
-                                    this.getMplsFlowMod().getMatch().get(MatchField.IPV4_DST).getInt()))))
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_DST).getInt()))))
                     .build();
             this.approvedActions.add(0, ofActionSetField);
         }
     }
 
     private void prependRewriteActionsVer10() {
-        if(this.getMplsFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_SRC) != null) {
             OFAction action = this.factory.actions().buildSetNwSrc()
-                            .setNwAddr(IPv4Address.of(
-                                    IPMapper.getPhysicalIp(
-                                            sw.getTenantId(),
-                                            this.getMplsFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt())))
-                            .build();
+                    .setNwAddr(IPv4Address.of(
+                            IPMapper.getPhysicalIp(
+                                    sw.getTenantId(),
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_SRC).getInt())))
+                    .build();
 
             this.approvedActions.add(0, action);
         }
 
-        if(this.getMplsFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
+        if(this.getFlowMod().getMatch().get(MatchField.IPV4_DST) != null) {
             OFAction action = this.factory.actions().buildSetNwDst()
-                            .setNwAddr(IPv4Address.of(
-                                    IPMapper.getPhysicalIp(sw.getTenantId(),
-                                            this.getMplsFlowMod().getMatch().get(MatchField.IPV4_DST).getInt())))
-                            .build();
+                    .setNwAddr(IPv4Address.of(
+                            IPMapper.getPhysicalIp(sw.getTenantId(),
+                                    this.getFlowMod().getMatch().get(MatchField.IPV4_DST).getInt())))
+                    .build();
 
             this.approvedActions.add(0, action);
         }
-    }*/
+    }
+
 
     public OVXFlowMod clone() {
         OVXFlowMod flowMod = new OVXFlowMod(this.getOFMessage().createBuilder().build());
@@ -471,5 +739,62 @@ public class OVXFlowMod extends OVXMessage implements Devirtualizable {
     @Override
     public int hashCode() {
         return this.getOFMessage().hashCode();
+    }
+
+
+
+    /**AggFlow:
+     * Check outport which indicate output action is edge.
+     * @return true if out port is edge
+     */
+    private boolean isEdgeOutport(){
+        short outport = 0;
+        if(this.getFlowMod().getActions().size()==0){
+            return false;
+        }
+
+        for(final OFAction act : this.getFlowMod().getActions()){
+            if(act.getType()==OFActionType.OUTPUT){
+                OFActionOutput outact = (OFActionOutput) act;
+                outport = outact.getPort().getShortPortNumber();
+            }
+        }
+
+        OVXPort outPort = sw.getPort(outport);
+        if(outPort.isEdge())
+        {
+            return true;}
+        else{
+            return false;}
+    }
+
+    /**
+     * Gets the host ip.
+     * @param host
+     * @return the host ip address
+     */
+    private IPAddress getHostIP(Host host)
+    {
+        if(host!=null){
+            return host.getIp();}
+        else{
+            return null;}
+    }
+
+    /**
+     * Gets the host instance by MACAddress.
+     * @param mac
+     * @return the host
+     */
+    private Host getHostbyMACAddress(byte[] mac){
+        OVXMap map = OVXMap.getInstance();
+
+        try {
+           // log.info("getHostbyMACAddress", map.getVirtualNetwork(sw.getTenantId()).getHost(MacAddress.of(mac)));
+            return map.getVirtualNetwork(sw.getTenantId()).getHost(MacAddress.of(mac));
+        } catch (NetworkMappingException e) {
+            log.error(e);
+        }
+        return null;
     }
 }

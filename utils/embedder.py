@@ -289,7 +289,20 @@ class OVXClient():
             e.rollback = True
             e.tenantId = tenantId
             raise
-        
+
+
+    def setOVXmode(self, tenantId, OVXmode):
+        req = {'tenantId': tenantId, 'OVXmode': OVXmode}
+        try:
+            ret = self._connect("setOVXmode", self.tenant_url, data=req)
+            if ret:
+                log.info("OVX mode %s has been set" % OVXmode)
+            return ret
+        except OVXException as e:
+            e.rollback = True
+            e.tenantId = tenantId
+            raise
+
     def connectHost(self, tenantId, dpid, port, mac):
         req = {'tenantId': tenantId, 'vdpid': dpid, 'vport': port, 'mac': mac}
         try:
@@ -594,7 +607,7 @@ class OVXEmbedderServer(HTTPServer):
     
 class OVXEmbedder(threading.Thread):
     """
-    OpenVirteX planner JSON RPC 2.0 server
+    Libera planner JSON RPC 2.0 server
     """
     def __init__(self, opts):
         threading.Thread.__init__(self)
@@ -614,13 +627,13 @@ class OVXEmbedder(threading.Thread):
             self.httpd.closeControllers()
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description="OpenVirteX network embedding tool.")
-    parser.add_argument('--host', default='localhost', help='OpenVirteX embedder host (default="localhost")')
-    parser.add_argument('--port', default=8000, type=int, help='OpenVirteX embedder port (default=8000)')
-    parser.add_argument('--ovxhost', default='localhost', help='host where OpenVirteX is running (default="localhost")')
-    parser.add_argument('--ovxport', default=8080, type=int, help='port where OpenVirteX is running (default=8080)')
-    parser.add_argument('--ovxuser', default='admin', help='OpenVirteX user (default="admin")')
-    parser.add_argument('--ovxpass', default='admin', help='OpenVirteX password (default="admin")')
+    parser = ArgumentParser(description="Libera network embedding tool.")
+    parser.add_argument('--host', default='localhost', help='Libera embedder host (default="localhost")')
+    parser.add_argument('--port', default=8000, type=int, help='Libera embedder port (default=8000)')
+    parser.add_argument('--ovxhost', default='localhost', help='host where Libera is running (default="localhost")')
+    parser.add_argument('--ovxport', default=8080, type=int, help='port where Libera is running (default=8080)')
+    parser.add_argument('--ovxuser', default='admin', help='Libera user (default="admin")')
+    parser.add_argument('--ovxpass', default='admin', help='Libera password (default="admin")')
     parser.add_argument('--ctrlproto', default='tcp', help='default controller protocol (default="tcp")')
     parser.add_argument('--ctrlport', default=10000, type=int, help='default controller port (default=10000)')
     parser.add_argument('--loglevel', default='INFO', help='log level (default="INFO")')

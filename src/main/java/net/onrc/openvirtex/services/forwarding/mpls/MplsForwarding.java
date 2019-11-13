@@ -1,3 +1,25 @@
+/*
+ *
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
+
 /*******************************************************************************
  * Libera HyperVisor development based OpenVirteX for SDN 2.0
  *
@@ -34,6 +56,8 @@ import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
 
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class MplsForwarding {
     private static MplsForwarding instance;
@@ -140,7 +164,7 @@ public class MplsForwarding {
             //pPath.setMplsLabel(label);
 
             log.info("1. Assigned MPLS Label [{}] for PathID [{}] Original PathID [{}]",
-                     U32.of(label.getLabelValue()).toString(), vPath.getPathID(),
+                    U32.of(label.getLabelValue()).toString(), vPath.getPathID(),
                     label.getOriginalPathID());
         }
 
@@ -311,7 +335,7 @@ public class MplsForwarding {
                 }
             }
         }else{
-            log.info("MplsLabel {} is not exist", labelValue);
+            log.info("MplsLabel {} does not exist", labelValue);
             return;
         }
 
@@ -434,126 +458,148 @@ public class MplsForwarding {
 
 
     public synchronized void addMplsActions(PhysicalPath pPath) {
+        try {
 
-        int labelValue = makeLabel(pPath.getTenantID(), pPath.getSrcSwitch().getmFlowMod());
-        MplsLabel label = isContainedMplsLabel(labelValue);
+            int labelValue = makeLabel(pPath.getTenantID(), pPath.getSrcSwitch().getmFlowMod());
+            MplsLabel label = isContainedMplsLabel(labelValue);
 
-        if(label != null) {
-            if(label.isOriginalPathID(pPath.getPathID())) {
+            if (label != null) {
+                log.info("label is not null");
+                if (label.isOriginalPathID(pPath.getPathID())) {
+                    log.info("pPath.getPathID(={}", pPath.getPathID());
+                } else {
 
-            }else{
+                    if (label.isContainedPathID(pPath.getPathID())) {
+                        log.info("label.isContainedPathID(pPath.getPathID())", pPath.getPathID());
+                    } else {
+                        label.addPathID(pPath.getPathID());
+                        pPath.setNotOriginalPathID(label);
 
-                if(label.isContainedPathID(pPath.getPathID())) {
-                }else{
-                    label.addPathID(pPath.getPathID());
-                    pPath.setNotOriginalPathID(label);
+                        //PhysicalPath oriPath = PhysicalPathBuilder.getInstance().getPhysicalPath(label.getOriginalPathFlowID());
+                        //oriPath.addReferencedPathFlowID(vPath.getFlowID());
 
-                    //PhysicalPath oriPath = PhysicalPathBuilder.getInstance().getPhysicalPath(label.getOriginalPathFlowID());
-                    //oriPath.addReferencedPathFlowID(vPath.getFlowID());
+                        log.info("2. Assigned existing MPLS Label [{}] for PathID [{}] Original PathID [{}]",
+                                U32.of(label.getLabelValue()).toString(), pPath.getPathID(),
+                                label.getOriginalPathID());
+                    }
+                }
+            } else {
+                label = new MplsLabel(labelValue, pPath.getPathID());
+                labels.add(label);
+                pPath.setItselfOriginalPathID(label);
+                //pPath.setOriginalPath(true);
+                //pPath.setMplsLabel(label);
 
-                    log.info("2. Assigned exist MPLS Label [{}] for PathID [{}] Original PathID [{}]",
-                            U32.of(label.getLabelValue()).toString(), pPath.getPathID(),
-                            label.getOriginalPathID());
+                log.info("1. Assigned MPLS Label [{}] for PathID [{}] Original PathID [{}]",
+                        U32.of(label.getLabelValue()).toString(), pPath.getPathID(),
+                        label.getOriginalPathID());
+            }
+
+            OFFlowMod flowMod;
+            Match match;
+            if (pPath.getSrcSwitch() != null && pPath.getSrcSwitch().getMplsFlowMod() == null) {
+                log.info("SrcSwitch mFlowMod {}", pPath.getSrcSwitch().getmFlowMod().toString());
+                LinkedList<OFAction> actions = new LinkedList<>();
+                flowMod = pPath.getSrcSwitch().getmFlowMod().createBuilder().build();
+                OFActionPushMpls actionPushMpls = factory.actions().buildPushMpls()
+                        .setEthertype(EthType.MPLS_UNICAST)
+                        .build();
+                log.info("actionPushMpls {}", actionPushMpls);
+                actions.addLast(actionPushMpls);
+
+                OFActionSetField actionSetMplsLabel = factory.actions().buildSetField()
+                        .setField(factory.oxms().mplsLabel(U32.of(label.getLabelValue())))
+                        .build();
+                actions.addLast(actionSetMplsLabel);
+
+                OFActionOutput actionOutput = factory.actions().buildOutput()
+                        .setPort(OFPort.of(pPath.getSrcSwitch().getOutPort().getPortNumber()))
+                        .build();
+                actions.addLast(actionOutput);
+
+                pPath.getSrcSwitch().setMplsFlowMod(
+                        flowMod.createBuilder().setActions(actions).build()
+                );
+
+                log.info("SrcSwitch MplsFlowMod {}", pPath.getSrcSwitch().getMplsFlowMod().toString());
+            }
+
+            if (pPath.getDstSwitch() != null && pPath.getDstSwitch().getMplsFlowMod() == null) {
+                log.info("DstSwitch mFlowMod {}", pPath.getDstSwitch().getmFlowMod().toString());
+                LinkedList<OFAction> actions = new LinkedList<>();
+                flowMod = pPath.getDstSwitch().getmFlowMod().createBuilder().build();
+
+                match = pPath.getDstSwitch().getmFlowMod().getMatch().createBuilder().build();
+
+                OFActionPopMpls actionPopMpls = factory.actions().buildPopMpls()
+                        .setEthertype(EthType.IPv4)
+                        .build();
+                actions.addLast(actionPopMpls);
+
+                OFActionOutput actionOutput = factory.actions().buildOutput()
+                        .setPort(OFPort.of(pPath.getDstSwitch().getOutPort().getPortNumber()))
+                        .build();
+                actions.addLast(actionOutput);
+
+                match = match.createBuilder()
+                        .setExact(MatchField.ETH_SRC, match.get(MatchField.ETH_SRC))
+                        .setExact(MatchField.ETH_DST, match.get(MatchField.ETH_DST))
+                        .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
+                        .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
+                        .build();
+
+                match = match.createBuilder()
+                        .setExact(MatchField.ETH_SRC, match.get(MatchField.ETH_SRC))
+                        .setExact(MatchField.ETH_DST, match.get(MatchField.ETH_DST))
+                        .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
+                        .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
+                        .build();
+
+                pPath.getDstSwitch().setMplsFlowMod(
+                        flowMod.createBuilder().setMatch(match).setActions(actions).build()
+                );
+                log.info("DstSwitch MplsFlowMod {}", pPath.getSrcSwitch().getMplsFlowMod().toString());
+            }
+
+            if (pPath.getIntermediate().size() != 0) {
+                log.info("size {}", pPath.getIntermediate().size());
+                flowMod = pPath.getDstSwitch().getMplsFlowMod().createBuilder().build();
+
+                LinkedBlockingQueue<Node> n = pPath.getIntermediate();
+                Iterator<Node> i = n.iterator();
+                while (i.hasNext()) {
+                    i.next();
+                    for (Node node : n) {
+                    log.info("InterSwitch mFlowMod {}, nodes={}", node.getmFlowMod().toString(), node);
+                    if (node.getMplsFlowMod() == null) {
+
+
+                        LinkedList<OFAction> actions = new LinkedList<>();
+
+                        match = flowMod.getMatch().createBuilder()
+                                .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
+                                .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
+                                .build();
+                        //log.info("match={} and node.getOutPort().getPortNumber())={}", match, node.getOutPort().getPortNumber());
+
+                        //log.info("for build output={}", node.getOutPort().getPortNumber());
+
+                        OFActionOutput ofActionOutput = factory.actions().buildOutput()
+                                .setPort(OFPort.of(node.getOutPort().getPortNumber()))
+                                .build();
+                        actions.addLast(ofActionOutput);
+
+                        node.setMplsFlowMod(
+                                flowMod.createBuilder().setMatch(match).setActions(actions).build());
+
+                        log.info("InterSwitch MplsFlowMod {}", node.getMplsFlowMod().toString());
+
+                        }
+                    }
                 }
             }
-        }else{
-            label = new MplsLabel(labelValue, pPath.getPathID());
-            labels.add(label);
-            pPath.setItselfOriginalPathID(label);
-            //pPath.setOriginalPath(true);
-            //pPath.setMplsLabel(label);
 
-            log.info("1. Assigned MPLS Label [{}] for PathID [{}] Original PathID [{}]",
-                    U32.of(label.getLabelValue()).toString(), pPath.getPathID(),
-                    label.getOriginalPathID());
-        }
-
-        OFFlowMod flowMod;
-        Match match;
-        if(pPath.getSrcSwitch() != null && pPath.getSrcSwitch().getMplsFlowMod() == null) {
-            //log.info("SrcSwitch mFlowMod {}", pPath.getSrcSwitch().getmFlowMod().toString());
-            LinkedList<OFAction> actions = new LinkedList<>();
-            flowMod = pPath.getSrcSwitch().getmFlowMod().createBuilder().build();
-
-            OFActionPushMpls actionPushMpls = factory.actions().buildPushMpls()
-                    .setEthertype(EthType.MPLS_UNICAST)
-                    .build();
-            actions.addLast(actionPushMpls);
-
-            OFActionSetField actionSetMplsLabel = factory.actions().buildSetField()
-                    .setField(factory.oxms().mplsLabel(U32.of(label.getLabelValue())))
-                    .build();
-            actions.addLast(actionSetMplsLabel);
-
-            OFActionOutput actionOutput = factory.actions().buildOutput()
-                    .setPort(OFPort.of(pPath.getSrcSwitch().getOutPort().getPortNumber()))
-                    .build();
-            actions.addLast(actionOutput);
-
-            pPath.getSrcSwitch().setMplsFlowMod(
-                    flowMod.createBuilder().setActions(actions).build()
-            );
-
-            //log.info("SrcSwitch MplsFlowMod {}", pPath.getSrcSwitch().getMplsFlowMod().toString());
-        }
-
-        if(pPath.getDstSwitch() != null && pPath.getDstSwitch().getMplsFlowMod() == null) {
-            //log.info("DstSwitch mFlowMod {}", pPath.getDstSwitch().getmFlowMod().toString());
-            LinkedList<OFAction> actions = new LinkedList<>();
-            flowMod = pPath.getDstSwitch().getmFlowMod().createBuilder().build();
-
-            match = pPath.getDstSwitch().getmFlowMod().getMatch().createBuilder().build();
-
-            OFActionPopMpls actionPopMpls = factory.actions().buildPopMpls()
-                    .setEthertype(EthType.IPv4)
-                    .build();
-            actions.addLast(actionPopMpls);
-
-            OFActionOutput actionOutput = factory.actions().buildOutput()
-                    .setPort(OFPort.of(pPath.getDstSwitch().getOutPort().getPortNumber()))
-                    .build();
-            actions.addLast(actionOutput);
-
-            match = match.createBuilder()
-                    .setExact(MatchField.ETH_SRC, match.get(MatchField.ETH_SRC))
-                    .setExact(MatchField.ETH_DST, match.get(MatchField.ETH_DST))
-                    .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
-                    .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
-                    .build();
-
-            pPath.getDstSwitch().setMplsFlowMod(
-                    flowMod.createBuilder().setMatch(match).setActions(actions).build()
-            );
-            //log.info("DstSwitch MplsFlowMod {}", pPath.getSrcSwitch().getMplsFlowMod().toString());
-        }
-
-        if(pPath.getIntermediate().size() != 0) {
-            //log.info("size {}", pPath.getIntermediate().size());
-            flowMod = pPath.getDstSwitch().getMplsFlowMod().createBuilder().build();
-
-            for (Node node : pPath.getIntermediate()) {
-                //log.info("InterSwitch mFlowMod {}", node.getmFlowMod().toString());
-                if(node.getMplsFlowMod() == null) {
-                    LinkedList<OFAction> actions = new LinkedList<>();
-
-                    match = flowMod.getMatch().createBuilder()
-                            .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
-                            .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
-                            .build();
-
-                    OFActionOutput ofActionOutput = factory.actions().buildOutput()
-                            .setPort(OFPort.of(node.getOutPort().getPortNumber()))
-                            .build();
-                    actions.addLast(ofActionOutput);
-
-                    node.setMplsFlowMod(
-                            flowMod.createBuilder().setMatch(match).setActions(actions).build()
-
-                    );
-
-                    //log.info("InterSwitch MplsFlowMod {}", node.getMplsFlowMod().toString());
-                }
-            }
+        } catch (NullPointerException e) {
         }
     }
 
@@ -562,10 +608,10 @@ public class MplsForwarding {
         MplsLabel label = isContainedMplsLabel(labelValue);
 
         if(label.isOriginalPathID(oldPath.getPathID())) {
-            //log.info("OriginalPath");
+            log.info("OriginalPath");
             newPath.setItselfOriginalPathID(label);
         }else{
-            //log.info("Not OriginalPath");
+            log.info("Not OriginalPath");
             newPath.setNotOriginalPathID(label);
         }
 
@@ -585,7 +631,7 @@ public class MplsForwarding {
 
             match = OVXMessageUtil.updateMatch(mplsFlowMod.getMatch(), match);
 
-            //log.info("getSrcSwitch After " + match.toString());
+            log.info("getSrcSwitch After " + match.toString());
 
             List<OFAction> actions = new LinkedList<>();
 
@@ -611,8 +657,8 @@ public class MplsForwarding {
                     .build();
 
             newPath.getSrcSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());
-            //newPath.getSrcSwitch().setmFlowMod(oldPath.getSrcSwitch().getmFlowMod());
-            //log.info("getSrcSwitch After " + mplsFlowMod.toString());
+            newPath.getSrcSwitch().setmFlowMod(oldPath.getSrcSwitch().getmFlowMod());
+            log.info("getSrcSwitch After " + mplsFlowMod.toString());
         }
 
         if(newPath.getDstSwitch() != null) {
@@ -651,8 +697,8 @@ public class MplsForwarding {
                     .build();
 
             newPath.getDstSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());
-            //newPath.getDstSwitch().setmFlowMod(oldPath.getDstSwitch().getmFlowMod());
-            //log.info("getDstSwitch After " + mplsFlowMod.toString());
+            newPath.getDstSwitch().setmFlowMod(oldPath.getDstSwitch().getmFlowMod());
+            log.info("getDstSwitch After " + mplsFlowMod.toString());
         }
 
         if(newPath.getIntermediate().size() != 0) {
@@ -682,7 +728,7 @@ public class MplsForwarding {
 
                 node.setMplsFlowMod(mplsFlowMod.createBuilder().build());
 
-                //log.info("getDstSwitch After " + node.getMplsFlowMod().toString());
+                log.info("getDstSwitch After " + node.getMplsFlowMod().toString());
             }
         }
 
@@ -707,7 +753,7 @@ public class MplsForwarding {
         for(Host host : hosts) {
             if (host.getMac().equals(srcMacAddress)) {
                 srcSwitchID = host.getPort().getPhysicalPort().getParentSwitch().getSwitchLocID();
-                //log.info("srcSwitchID [" + srcSwitchID + "] for " + host.toString());
+                log.info("srcSwitchID [" + srcSwitchID + "] for " + host.toString());
                 break;
             }
         }
@@ -720,7 +766,7 @@ public class MplsForwarding {
             }
         }
 
-        //log.info("1. makeLabel {}/{}", srcSwitchID, dstSwitchID);
+        log.info("1. makeLabel {}/{}", srcSwitchID, dstSwitchID);
 
         return srcSwitchID << 13 | dstSwitchID << 6 | tenantID;
     }
@@ -731,7 +777,7 @@ public class MplsForwarding {
         int srcSwitchID = ((PhysicalSwitch)pPath.getSrcSwitch().getSwitch()).getSwitchLocID();
         int dstSwitchID = ((PhysicalSwitch)pPath.getDstSwitch().getSwitch()).getSwitchLocID();
 
-        //log.info("2. makeLabel {}/{}", srcSwitchID, dstSwitchID);
+        log.info("2. makeLabel {}/{}", srcSwitchID, dstSwitchID);
 
         return srcSwitchID << 13 | dstSwitchID << 6 | pPath.getTenantID();
     }

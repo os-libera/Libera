@@ -1,36 +1,33 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.util;
 
 import java.util.BitSet;
 
+import net.onrc.openvirtex.core.LiberaController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
-import net.onrc.openvirtex.core.OpenVirteXController;
 import net.onrc.openvirtex.elements.link.OVXLinkField;
 import net.onrc.openvirtex.exceptions.DuplicateIndexException;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
@@ -48,7 +45,7 @@ public class BitSetIndex {
          * When the user request a new id, the class check if an id in the range
          * from 1 to the biggest index is available.
          */
-        TENANT_ID((int) Math.pow(2, OpenVirteXController.getInstance().getNumberVirtualNets())),
+        TENANT_ID((int) Math.pow(2, LiberaController.getInstance().getNumberVirtualNets())),
         SWITCH_ID((int) Math.pow(2, 32)),
         LINK_ID(getLinkMaxValue()),
         ROUTE_ID((int) Math.pow(2, 24)),
@@ -56,7 +53,7 @@ public class BitSetIndex {
         FLOW_ID((int) Math.pow(2, 24)),
         HOST_ID((int) Math.pow(2, 32)),
         FLOW_COUNTER(getLinkMaxValue()),
-        IP_ID((int) Math.pow(2, (32 - OpenVirteXController.getInstance().getNumberVirtualNets()))),
+        IP_ID((int) Math.pow(2, (32 - LiberaController.getInstance().getNumberVirtualNets()))),
         LOC_ID((int) Math.pow(2, 11)),
         PATH_ID((int) Math.pow(2, 11)),
         DEFAULT(1000);
@@ -64,13 +61,13 @@ public class BitSetIndex {
         protected Integer value;
 
         private static Integer getLinkMaxValue() {
-            if (OpenVirteXController.getInstance().getOvxLinkField().getValue() == OVXLinkField.MAC_ADDRESS
+            if (LiberaController.getInstance().getOvxLinkField().getValue() == OVXLinkField.MAC_ADDRESS
                     .getValue()) {
-                return (int) Math.pow(2, ((48 - OpenVirteXController
+                return (int) Math.pow(2, ((48 - LiberaController
                         .getInstance().getNumberVirtualNets()) / 2));
-            } else if (OpenVirteXController.getInstance().getOvxLinkField()
+            } else if (LiberaController.getInstance().getOvxLinkField()
                     .getValue() == OVXLinkField.VLAN.getValue()) {
-                return (int) Math.pow(2, ((12 - OpenVirteXController
+                return (int) Math.pow(2, ((12 - LiberaController
                         .getInstance().getNumberVirtualNets()) / 2));
             } else {
                 return 1000;

@@ -11,9 +11,9 @@ if __name__ == '__main__':
     parser.add_argument('tenant_id', help='Virtual network tenant ID')
     parser.add_argument('src_dpid', help='Virtual source dpid')
     parser.add_argument('dst_dpid', help='Virtual dest dpid')
-    parser.add_argument('--host', default='localhost', help='host where OpenVirteX is running (default="localhost")')
-    parser.add_argument('--port', default=8080, type=int, help='port where OpenVirteX is running (default=8080)')
-    parser.add_argument('--ovx_user', default='admin', help='OpenVirteX user (default="admin")')
+    parser.add_argument('--host', default='localhost', help='host where Libera is running (default="localhost")')
+    parser.add_argument('--port', default=8080, type=int, help='port where Libera is running (default=8080)')
+    parser.add_argument('--ovx_user', default='admin', help='Libera user (default="admin")')
     parser.add_argument("-n", action="store_true",  dest="no_passwd", default=False,
                     help="Run with no password; default true")
     args = parser.parse_args()

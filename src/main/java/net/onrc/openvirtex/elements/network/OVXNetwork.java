@@ -1,33 +1,30 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.network;
 
 import java.util.*;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
-import net.onrc.openvirtex.core.OpenVirteXController;
+import net.onrc.openvirtex.core.LiberaController;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
 import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.OVXMap;
@@ -88,6 +85,7 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
     private final Map<OVXPort, Host> hostMap;
     private final OVXFlowManager flowManager;
 
+
     /**
      * Instantiates a virtual network. Only use if you have reserved the tenantId
      * beforehand!
@@ -127,7 +125,7 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
     public OVXNetwork(final ArrayList<String> controllerUrls,
                       final IPAddress network, final short mask)
             throws IndexOutOfBoundException {
-        this(OpenVirteXController.getTenantCounter().getNewIndex(),
+        this(LiberaController.getTenantCounter().getNewIndex(),
                 controllerUrls, network, mask);
     }
 
@@ -149,6 +147,8 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
         return this.tenantId;
     }
 
+
+
     /**
      * Gets the network address space.
      *
@@ -167,8 +167,10 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
      */
     public static void reserveTenantId(Integer tenantId)
             throws IndexOutOfBoundException, DuplicateIndexException {
-        OpenVirteXController.getTenantCounter().getNewIndex(tenantId);
+        LiberaController.getTenantCounter().getNewIndex(tenantId);
     }
+
+
 
     /**
      * Gets the current value of the link ID.
@@ -213,6 +215,7 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
         return this.hostMap.get(port);
     }
 
+
     public Host getHost(final Integer hostId) {
         for (final Host host : this.hostMap.values()) {
             if (host.getHostId().equals(hostId)) {
@@ -221,6 +224,37 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
         }
         return null;
     }
+    /** AggFlow:
+     * Gets the Host using IPAddress
+     *
+     * @param ip
+     * @return host
+     */
+    public Host getHost(final IPAddress ip) {
+        for(final Host host : this.hostMap.values()){
+            if(host.getIp().equals(ip)){
+                return host;
+            }
+        }
+        return null;
+    }
+
+    /** AggFlow:
+     * Gets the Host using MACAddress
+     *
+     * @param mac
+     * @return host
+     */
+    public Host getHost(final MacAddress mac){
+        for(final Host host : this.hostMap.values()){
+            if(host.getMac().equals(mac)){
+                return host;
+            }
+        }
+        return null;
+    }
+
+
 
     public void unregister() {
         DBManager.getInstance().removeDoc(this);
@@ -234,7 +268,7 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
         // remove the network from the Map
         OVXMap.getInstance().removeVirtualIPs(this.tenantId);
         OVXMap.getInstance().removeNetwork(this);
-        OpenVirteXController.getTenantCounter().releaseIndex(this.tenantId);
+        LiberaController.getTenantCounter().releaseIndex(this.tenantId);
     }
 
     public void stop() {
@@ -324,6 +358,7 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
 
         return ovxPort;
     }
+
 
     /**
      * Sets the algorithm and number of backups for the
@@ -702,14 +737,14 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
     }
 
     public Integer nextIP() throws IndexOutOfBoundException {
-        return (this.tenantId << 32 - OpenVirteXController.getInstance()
+        return (this.tenantId << 32 - LiberaController.getInstance()
                 .getNumberVirtualNets()) + this.ipCounter.getNewIndex();
     }
 
     public static void reset() {
         OVXNetwork.log
                 .debug("Resetting tenantId counter to initial state. Don't do this at runtime!");
-        OpenVirteXController.getTenantCounter().reset();
+        LiberaController.getTenantCounter().reset();
 
     }
 
@@ -780,4 +815,5 @@ public class OVXNetwork extends Network<OVXSwitch, OVXPort, OVXLink> implements
     public Map<OVXPort, Host> getHostMap() {
         return this.hostMap;
     };
+
 }

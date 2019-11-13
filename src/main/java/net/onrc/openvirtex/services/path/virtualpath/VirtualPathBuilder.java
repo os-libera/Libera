@@ -1,3 +1,25 @@
+/*
+ *
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
+
 /*******************************************************************************
  * Libera HyperVisor development based OpenVirteX for SDN 2.0
  *
@@ -51,9 +73,9 @@ public class VirtualPathBuilder {
 
     //only for 1:1 = OVXSwitch:PhysicalSwitch Mapping. Additional implementation is required 1:N Mapping
     public synchronized VirtualPath buildVirtualPath(OVXMatch ovxMatch, OFFlowMod oriFlowMod) {
-        /*log.info("TenantID {} FlowID {} SrcMAC {} DstMAC {}",
+        log.info("vFlowInfo: TenantID {} FlowID {} SrcMAC {} DstMAC {}",
                 ovxMatch.getTenantId(), ovxMatch.getFlowId(), ovxMatch.getMatch().get(MatchField.ETH_SRC).toString(),
-                ovxMatch.getMatch().get(MatchField.ETH_DST).toString());*/
+                ovxMatch.getMatch().get(MatchField.ETH_DST).toString());
         int pathID = PathUtil.getInstance().makePathID(ovxMatch.getTenantId(), ovxMatch.getFlowId());
         VirtualPath vPath = PathIDvirtualPathMap.get(pathID);
         if(vPath == null){

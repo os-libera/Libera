@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.db;
 
 import java.io.PrintStream;
@@ -149,7 +146,7 @@ public final class DBManager {
             }
 
         } catch (Exception e) {
-            log.error("Failed to initialize database: {}", e.getMessage());
+            log.debug("Failed to initialize database: {}", e.getMessage());
         } finally {
             // Restore error stream
             System.setErr(ps);
@@ -171,7 +168,7 @@ public final class DBManager {
             BasicDBObject index = new BasicDBObject(TenantHandler.TENANT, 1);
             this.collections.get(coll).ensureIndex(index, options);
         } catch (Exception e) {
-            log.error("Failed to set database index: {}", e.getMessage());
+            log.debug("Failed to set database index: {}", e.getMessage());
         } finally {
             // Restore error stream
             System.setErr(ps);
@@ -192,7 +189,7 @@ public final class DBManager {
             this.collections.get(coll).drop();
             this.setIndex(DBManager.DB_VNET);
         } catch (Exception e) {
-            log.error("Failed to clear database: {}", e.getMessage());
+            log.debug("Failed to clear database: {}", e.getMessage());
         } finally {
             // Restore error stream
             System.setErr(ps);
@@ -210,7 +207,7 @@ public final class DBManager {
         try {
             this.dbConnection.disconnect();
         } catch (Exception e) {
-            log.error("Failed to close database connection: {}", e.getMessage());
+            log.debug("Failed to close database connection: {}", e.getMessage());
         } finally {
             // Restore error stream
             System.setErr(ps);
@@ -237,7 +234,7 @@ public final class DBManager {
             if (e instanceof MongoException.DuplicateKey) {
                 log.warn("Skipped saving of virtual network with duplicate tenant id");
             } else {
-                log.error("Failed to insert document into database: {}", e.getMessage());
+                log.debug("Failed to insert document into database: {}", e.getMessage());
             }
         } finally {
             // Restore error stream
@@ -259,7 +256,7 @@ public final class DBManager {
             DBCollection collection = this.collections.get(obj.getDBName());
             collection.remove(new BasicDBObject(obj.getDBObject()));
         } catch (Exception e) {
-            log.error("Failed to remove document from database: {}",
+            log.debug("Failed to remove document from database: {}",
                     e.getMessage());
         } finally {
             // Restore error stream
@@ -283,7 +280,7 @@ public final class DBManager {
             DBCollection collection = this.collections.get(obj.getDBName());
             collection.update(query, update, true, false);
         } catch (Exception e) {
-            log.error("Failed to update database: {}", e.getMessage());
+            log.debug("Failed to update database: {}", e.getMessage());
         } finally {
             System.setErr(ps);
         }
@@ -305,7 +302,7 @@ public final class DBManager {
             DBCollection collection = this.collections.get(obj.getDBName());
             collection.update(query, update);
         } catch (Exception e) {
-            log.error("Failed to remove from db: {}", e.getMessage());
+            log.debug("Failed to remove from db: {}", e.getMessage());
         } finally {
             System.setErr(ps);
         }
@@ -329,7 +326,7 @@ public final class DBManager {
             DBCollection collection = this.collections.get(DB_VNET);
             collection.update(query, pull);
         } catch (Exception e) {
-            log.error("Failed to remove from db: {}", e.getMessage());
+            log.debug("Failed to remove from db: {}", e.getMessage());
         } finally {
             System.setErr(ps);
         }
@@ -397,13 +394,13 @@ public final class DBManager {
                                     mngr.getTenantId(), mngr.getSwitchCount(),
                                     mngr.getLinkCount(), mngr.getPortCount());
                 } catch (IndexOutOfBoundException | DuplicateIndexException e) {
-                    DBManager.log.error(
+                    DBManager.log.debug(
                             "Failed to load virtual network {}: {}",
                             mngr.getTenantId(), e.getMessage());
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to load virtual networks from db: {}",
+            log.debug("Failed to load virtual networks from db: {}",
                     e.getMessage());
         } finally {
             System.setErr(ps);

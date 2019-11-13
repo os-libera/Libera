@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.messages.statistics;
 
 import net.onrc.openvirtex.elements.datapath.OVXSingleSwitch;
@@ -63,7 +60,7 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
 
     @Override
     public void devirtualizeStatistic(final OVXSwitch sw, final OVXStatisticsRequest msg) {
-        //this.log.info("devirtualizeStatistic Before {}", this.ofFlowStatsRequest.toString());
+        this.log.info("[{}] devirtualizeStatistic Before {}", System.currentTimeMillis(), this.ofFlowStatsRequest.toString());
 
         List<OFFlowStatsEntry> replies = new LinkedList<OFFlowStatsEntry>();
         HashSet<Long> uniqueCookies = new HashSet<Long>();
@@ -71,23 +68,22 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
 
         if (this.outPort.getPortNumber() == OFPort.ANY.getPortNumber()) {
             for (PhysicalSwitch psw : getPhysicalSwitches(sw)) {
-                //this.log.info("getTenantId " + tid);
+                this.log.info("getTenantId " + tid);
                 List<OFFlowStatsEntry> reps = psw.getFlowStats(tid);
                 if (reps != null) {
-//                    this.log.info("reps != null");
+                    this.log.info("reps != null");
 
                     for (OFFlowStatsEntry stat : reps) {
 
-                        //this.log.info("before {}", stat.toString());
+                        this.log.info("before {}", stat.toString());
 
-//                        this.log.info("stat.getCookie() = " + stat.getCookie().toString());
+                        this.log.info("stat.getCookie() = " + stat.getCookie().toString());
 
                         if (!uniqueCookies.contains(stat.getCookie().getValue())) {
-                            //this.log.info("is not contained");
+                            this.log.info("is not contained");
                             OVXFlowMod origFM;
                             try {
                                 origFM = sw.getFlowMod(stat.getCookie().getValue());
-
                                 uniqueCookies.add(stat.getCookie().getValue());
                             } catch (MappingException e) {
                                 log.info(
@@ -108,7 +104,7 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
                                 stat = stat.createBuilder().setInstructions(origFM.getFlowMod().getInstructions()).build();
 
 
-                            //this.log.info("after {}", stat.toString());
+                            this.log.info("after {}", stat.toString());
 
 
                             replies.add(stat);
@@ -123,10 +119,9 @@ public class OVXFlowStatsRequest extends OVXStatistics implements Devirtualizabl
                     .setXid(msg.getOFMessage().getXid())
                     .setEntries(replies)
                     .build();
-
             OVXStatisticsReply reply = new OVXStatisticsReply(flowStatsReply);
 
-            //this.log.info("devirtualizeStatistic after {}",flowStatsReply.toString());
+            //this.log.info("[{}] DevirtualizeStatistic after {}",System.currentTimeMillis(), flowStatsReply.toString());
 
             sw.sendMsg(reply, sw);
         }

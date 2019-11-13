@@ -1,3 +1,25 @@
+/*
+ *
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
+
 /*******************************************************************************
  * Libera HyperVisor development based OpenVirteX for SDN 2.0
  *
@@ -33,6 +55,7 @@ import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class VirtualPath extends Path{
     private static Logger log = LogManager.getLogger(VirtualPath.class.getName());
@@ -301,12 +324,20 @@ public class VirtualPath extends Path{
             }
 
             node = isContained(this.getIntermediate(), ofFlowMod);
+            Iterator<Node> i = this.getIntermediate().iterator();
+            while(i.hasNext()){
+            Node n =i.next();
             if(node != null) {
-                log.info("Removed SwitchType.INTERMEDIATE {}", delFlowMod.toString());
-                this.getIntermediate().remove(node);
+
+                while (i.hasNext()) {
+                    log.info("Removed SwitchType.INTERMEDIATE {}", delFlowMod.toString());
+                    i.remove();
+                }
+            }
                 ovxMatch.setSwitchType(SwitchType.INTERMEDIATE);
                 return ofFlowMod;
             }
+
 
             if(this.getDstSwitch() != null && this.getDstSwitch().getOriFlowMod().equals(ofFlowMod)) {
                 log.info("Removed SwitchType.EGRESS {}", delFlowMod.toString());
@@ -330,7 +361,7 @@ public class VirtualPath extends Path{
         }
     }
 
-    public Node isContained(List<Node> nodes, OFFlowMod ofFlowMod) {
+    public Node isContained(LinkedBlockingQueue<Node> nodes, OFFlowMod ofFlowMod) {
         for(Node node : nodes) {
             if(node.getOriFlowMod().equals(ofFlowMod)){
                 return node;
@@ -377,7 +408,6 @@ public class VirtualPath extends Path{
 
         if(this.getIntermediate().size() != 0) {
             for(Node node : this.getIntermediate()) {
-                //log.info("Intermediate = " + node.toString());
                 str = str + "Intermediate = " + node.toString() + "\n";
             }
         }
@@ -391,9 +421,6 @@ public class VirtualPath extends Path{
 
         if(this.mPath != null)
             str = str + mPath.printPhysicalPathInfo();
-
-
-
         return str;
     }
 }

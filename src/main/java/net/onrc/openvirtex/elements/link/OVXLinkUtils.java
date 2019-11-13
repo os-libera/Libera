@@ -1,38 +1,39 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.link;
 
 import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import net.onrc.openvirtex.core.OpenVirteXController;
+import net.onrc.openvirtex.core.LiberaController;
 import net.onrc.openvirtex.elements.OVXMap;
+import net.onrc.openvirtex.elements.datapath.OVXBigSwitch;
+import net.onrc.openvirtex.elements.datapath.OVXSwitch;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 
 
+import net.onrc.openvirtex.exceptions.SwitchMappingException;
 import net.onrc.openvirtex.messages.OVXMessageUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,7 +43,6 @@ import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.*;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
-import org.projectfloodlight.openflow.protocol.oxm.OFOxm;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFVlanVidMatch;
 import org.projectfloodlight.openflow.types.VlanVid;
@@ -61,6 +61,7 @@ public class OVXLinkUtils {
     private MacAddress srcMac;
     private MacAddress dstMac;
     private Short vlan;
+
 
     /**
      * Instantiates a new link utils instance. Never called by external classes.
@@ -106,7 +107,7 @@ public class OVXLinkUtils {
         this();
         this.srcMac = srcMac;
         this.dstMac = dstMac;
-        final int vNets = OpenVirteXController.getInstance()
+        final int vNets = LiberaController.getInstance()
                 .getNumberVirtualNets();
         final MacAddress mac = MacAddress.of(
                 (srcMac.getLong() & 0xFFFFFF) << 24 | dstMac.getLong() & 0xFFFFFF);
@@ -122,6 +123,8 @@ public class OVXLinkUtils {
         this.linkId = (int) (mac.getLong() >> (48 - vNets) / 2) & mask;
         this.flowId = (int) mac.getLong() & mask;
         this.vlan = 0;
+
+        //log.info("mode value={}", OVXmodeHandler.getOVXmode());
     }
 
     /**
@@ -142,7 +145,8 @@ public class OVXLinkUtils {
         this.tenantId = tenantId;
         this.linkId = linkId;
         this.flowId = flowId;
-        final int vNets = OpenVirteXController.getInstance()
+        //log.info("Inside link utils of OVX. tid={}, linkid={}, flowid={}", tenantId, linkId, flowId);
+        final int vNets = LiberaController.getInstance()
                 .getNumberVirtualNets();
         final MacAddress mac = MacAddress.of(
                 tenantId.longValue() << 48 - vNets
@@ -156,6 +160,62 @@ public class OVXLinkUtils {
         this.vlan = 0;
     }
 
+    //Aggflow: Modifying constructor to have MAC address following the AggFlow technique
+    /**
+     *  Instantiates a new LinkUtils from tenantId, linkId, flowId and virtual switch.
+     *  Automatically encapsulate and set these values in the MAC addresses.
+     *  This is new address assigning technique where Source MAC address is tenantId , Destination MAC address is next Switch Id
+     *  We find next switch by linkId, flowId and current switch.
+     *
+     * @param tenantId
+     * 				the tenant id
+     * @param linkId
+     * 				the link id
+     * @param flowId
+     * 				the flow id
+     * @param sw
+     * 				the switch called this LinkUtils
+     */
+
+    public OVXLinkUtils(final Integer tenantId, final Integer linkId, final Integer flowId, final OVXSwitch sw){
+        this();
+        this.tenantId = tenantId;
+        this.linkId = linkId;
+        this.flowId = flowId;
+        log.info("Inside link utils for AggFLow. tid={}, linkid={}, flowid={}, sw={}", tenantId, linkId, flowId, sw);
+        OVXMap map = OVXMap.getInstance();
+        OVXSwitch dstsw;
+        try {
+            final long dst;
+            final short portNum;
+
+            OVXLink ovxLink = map.getVirtualNetwork(tenantId).getLinksById(linkId).get(0);
+
+            if(ovxLink.getSrcSwitch().equals(sw)){
+                dstsw = ovxLink.getDstSwitch();
+                portNum = ovxLink.dstPort.getPortNumber();
+            }
+            else{
+                dstsw = ovxLink.getSrcSwitch();
+                portNum = ovxLink.srcPort.getPortNumber();
+            }
+
+            if(dstsw instanceof OVXBigSwitch){
+                dst = dstsw.getPort(portNum).getPhysicalPort().getParentSwitch().getSwitchId();
+            }else{
+                dst = map.getPhysicalSwitches(dstsw).get(0).getSwitchId();
+            }
+            this.srcMac = MacAddress.of(this.tenantId);
+            this.dstMac = MacAddress.of(dst);
+
+        } catch (SwitchMappingException e) {
+            log.error("This Switch can't be found");
+        } catch (NetworkMappingException e) {
+            log.error(e);
+        }
+        // TODO: encapsulate the values in the vlan too
+    }
+    
     /**
      * Checks if the link utils instance is valid. To be valid, the instance has
      * to have tenantId, linkId and flowId set. Moreover, both MAC addresses or
@@ -260,7 +320,7 @@ public class OVXLinkUtils {
      *            the OpenFlow match
      */
     public Match rewriteMatch(final Match match) {
-        final OVXLinkField linkField = OpenVirteXController.getInstance()
+        final OVXLinkField linkField = LiberaController.getInstance()
                 .getOvxLinkField();
         if (linkField == OVXLinkField.MAC_ADDRESS) {
             return OVXMessageUtil.updateMatch(match,
@@ -292,16 +352,19 @@ public class OVXLinkUtils {
 
     public List<OFAction> setLinkFieldsVer10() {
         final List<OFAction> actions = new LinkedList<OFAction>();
-        final OVXLinkField linkField = OpenVirteXController.getInstance().getOvxLinkField();
+        final OVXLinkField linkField = LiberaController.getInstance().getOvxLinkField();
 
         OFActions action = OFFactories.getFactory(OFVersion.OF_10).actions();
 
+        log.info("removing the part of adding source MAC address action");
         if (linkField == OVXLinkField.MAC_ADDRESS) {
+
+            if(OVXmodeHandler.getOVXmode() != 2) {
             OFActionSetDlSrc setDlSrc = action.buildSetDlSrc()
                     .setDlAddr(this.getSrcMac())
                     .build();
             actions.add(setDlSrc);
-
+            }
             OFActionSetDlDst setDlDst = action.buildSetDlDst()
                     .setDlAddr(this.getDstMac())
                     .build();
@@ -317,17 +380,20 @@ public class OVXLinkUtils {
 
     public List<OFAction> setLinkFieldsVer13() {
         final List<OFAction> actions = new LinkedList<OFAction>();
-        final OVXLinkField linkField = OpenVirteXController.getInstance().getOvxLinkField();
+        final OVXLinkField linkField = LiberaController.getInstance().getOvxLinkField();
 
         OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
 
         if (linkField == OVXLinkField.MAC_ADDRESS) {
-            OFActionSetField ofActionSetField = factory.actions().buildSetField()
-                    .setField(factory.oxms().ethSrc(this.getSrcMac()))
-                    .build();
-            actions.add(ofActionSetField);
+            // Aggflow: removing the part of adding source MAC address action
+            //log.info("removing the part of adding source MAC address action");
+            if(OVXmodeHandler.getOVXmode() != 2) {
+                OFActionSetField ofActionSetField = factory.actions().buildSetField()
+                        .setField(factory.oxms().ethSrc(this.getSrcMac()))
+                        .build();
+                actions.add(ofActionSetField); }
 
-            ofActionSetField = factory.actions().buildSetField()
+            OFActionSetField ofActionSetField = factory.actions().buildSetField()
                     .setField(factory.oxms().ethDst(this.getDstMac()))
                     .build();
             actions.add(ofActionSetField);
@@ -337,6 +403,7 @@ public class OVXLinkUtils {
                     .build();
 
             actions.add(ofActionSetField);
+            log.info("actions here= {}", actions);
         }
         return actions;
     }
@@ -355,10 +422,47 @@ public class OVXLinkUtils {
             return unsetLinkFieldsVer13(skipSrcMac, skipDstMac);
     }
 
+
+    //AggFlow
+    public List<OFAction> unsetLinkFields() {
+        OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
+        final List<OFAction> actions = new LinkedList<OFAction>();
+        final OVXLinkField linkField = LiberaController.getInstance()
+                .getOvxLinkField();
+        if (linkField == OVXLinkField.MAC_ADDRESS) {
+            LinkedList<MacAddress> macList;
+            try {
+                macList = this.getOriginalMacAddresses();
+                OFActionSetField ofActionSetField = factory.actions().buildSetField()
+                        .setField(factory.oxms().ethSrc(macList.get(0)))
+                        .build();
+                actions.add(ofActionSetField);
+                ofActionSetField = factory.actions().buildSetField()
+                        .setField(factory.oxms().ethDst(macList.get(1)))
+                        .build();
+                actions.add(ofActionSetField);
+            } catch (NetworkMappingException e) {
+                OVXLinkUtils.log.error("Unable to restore actions: " + e);
+            }
+        } else {
+            if (linkField == OVXLinkField.VLAN) {
+                OVXLinkUtils.log
+                        .warn("Unable to restore actions, VLANs not supported");
+                // actions.add(new
+                // OFActionVirtualLanIdentifier(getOriginalVlan()));
+            }
+        }
+        return actions;
+    }
+
+
+
+
+
     public List<OFAction> unsetLinkFieldsVer13(final boolean skipSrcMac, final boolean skipDstMac) {
         OFFactory factory = OFFactories.getFactory(OFVersion.OF_13);
         final List<OFAction> actions = new LinkedList<OFAction>();
-        final OVXLinkField linkField = OpenVirteXController.getInstance().getOvxLinkField();
+        final OVXLinkField linkField = LiberaController.getInstance().getOvxLinkField();
 
         if (linkField == OVXLinkField.MAC_ADDRESS) {
             LinkedList<MacAddress> macList;
@@ -393,7 +497,7 @@ public class OVXLinkUtils {
     public List<OFAction> unsetLinkFieldsVer10(final boolean skipSrcMac, final boolean skipDstMac) {
         OFFactory factory = OFFactories.getFactory(OFVersion.OF_10);
         final List<OFAction> actions = new LinkedList<OFAction>();
-        final OVXLinkField linkField = OpenVirteXController.getInstance().getOvxLinkField();
+        final OVXLinkField linkField = LiberaController.getInstance().getOvxLinkField();
 
         OFActions action = factory.actions();
 

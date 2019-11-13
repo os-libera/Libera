@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="target">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/target/OpenVirteX-0.0.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/target/OpenVirteX.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/target/OpenVirteX-0.0.3.jar!/" />
+    </SOURCES>
+  </library>
+</component>

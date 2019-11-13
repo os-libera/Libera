@@ -1,33 +1,30 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.network;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.onrc.openvirtex.core.OpenVirteXController;
+import net.onrc.openvirtex.core.LiberaController;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
 import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.OVXMap;
@@ -104,7 +101,7 @@ public final class PhysicalNetwork extends
     public synchronized void addSwitch(final PhysicalSwitch sw) {
         super.addSwitch(sw);
         this.discoveryManager.put(sw.getSwitchId(), new SwitchDiscoveryManager(
-                sw, OpenVirteXController.getInstance().getUseBDDP()));
+                sw, LiberaController.getInstance().getUseBDDP()));
         DBManager.getInstance().addSwitch(sw.getSwitchId());
     }
 
@@ -181,7 +178,7 @@ public final class PhysicalNetwork extends
             final PhysicalLink link = new PhysicalLink(srcPort, dstPort);
             OVXMap.getInstance().knownLink(link);
             super.addLink(link);
-            log.info("Adding physical link between {}/{} and {}/{}", link
+            log.debug("Adding physical link between {}/{} and {}/{}", link
                     .getSrcSwitch().getSwitchName(), link.getSrcPort()
                     .getPortNumber(), link.getDstSwitch().getSwitchName(), link
                     .getDstPort().getPortNumber());

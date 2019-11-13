@@ -1,18 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
 package net.onrc.openvirtex.api.service.handlers;
 
 import java.net.InetAddress;
@@ -35,22 +41,11 @@ import net.onrc.openvirtex.elements.network.OVXNetwork;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
-import net.onrc.openvirtex.exceptions.ControllerUnavailableException;
-import net.onrc.openvirtex.exceptions.DuplicateMACException;
-import net.onrc.openvirtex.exceptions.InvalidDPIDException;
-import net.onrc.openvirtex.exceptions.InvalidHostException;
-import net.onrc.openvirtex.exceptions.InvalidLinkException;
-import net.onrc.openvirtex.exceptions.InvalidPortException;
-import net.onrc.openvirtex.exceptions.InvalidPriorityException;
-import net.onrc.openvirtex.exceptions.InvalidRouteException;
-import net.onrc.openvirtex.exceptions.InvalidTenantIdException;
-import net.onrc.openvirtex.exceptions.MissingRequiredField;
-import net.onrc.openvirtex.exceptions.NetworkMappingException;
-import net.onrc.openvirtex.exceptions.SwitchMappingException;
-import net.onrc.openvirtex.exceptions.VirtualLinkException;
+import net.onrc.openvirtex.exceptions.*;
 import net.onrc.openvirtex.routing.SwitchRoute;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.util.HexString;
+import net.onrc.openvirtex.exceptions.OVXmodeValueException;
 
 /**
  * Utility class that implements various checks
@@ -460,6 +455,20 @@ public final class HandlerUtils {
             oldLink = link;
         }
     }
+
+
+    /**
+     * Checks that the OVX mode value is valid.
+     * @throws OVXmodeValueException
+     */
+    public static void isValidOVXmode(final int mode) throws OVXmodeValueException{
+        int value = mode;
+        if(value > 2 || value < 0){
+            throw new OVXmodeValueException("This OVXmode value is undefined");
+        }
+    }
+
+
 
     /**
      * Checks that the virtual ports (virtual link end-points) are mapped on the

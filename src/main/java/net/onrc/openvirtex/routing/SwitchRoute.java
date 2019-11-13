@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.routing;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
@@ -36,6 +33,7 @@ import net.onrc.openvirtex.elements.link.OVXLinkUtils;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
 import net.onrc.openvirtex.exceptions.DroppedMessageException;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.LinkMappingException;
@@ -47,6 +45,7 @@ import org.apache.logging.log4j.Logger;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
 
@@ -67,8 +66,11 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
     private final TreeMap<Byte, List<PhysicalLink>> unusableRoutes;
     // A reference to the PhysicalPort at the start of the path
     private PhysicalPort inPort;
-    // A reference to the PhysicalPort at the start of the path
+    // A reference to the PhysicalPort at the end of the path
     private PhysicalPort outPort;
+
+    OFFactory factory = OFFactories.getFactory(sw.getOfVersion());
+    private final List<OFAction> actionList = new LinkedList<OFAction>();
 
     /**
      * Instantiates a new switch route for the given switch between
@@ -285,7 +287,6 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
                                 .build()
                         );
 
-                        //fm.setCookie(U64.of(((OVXFlowTable2)this.getSrcPort().getParentSwitch().getFlowTable()).getCookie(fe, true)));
 
                         this.generateRouteFMs(fm);
                         this.generateFirstFM(fm);
@@ -312,53 +313,17 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
     public void generateRouteFMs(final OVXFlowMod fm) {
         // This list includes all the actions that have to be applied at the end
         // of the route
-        final LinkedList<OFAction> outActions = new LinkedList<OFAction>();
+        // final LinkedList<OFAction> outActions = new LinkedList<OFAction>();
 
-        if (this.getDstPort().isEdge()) {
-            outActions.addAll(IPMapper.prependUnRewriteActions(fm.getFlowMod().getMatch()));
-        } else {
-            final OVXLink link = this.getDstPort().getLink().getOutLink();
-            Integer linkId = link.getLinkId();
-            Integer flowId = 0;
-            try {
-                flowId = OVXMap
-                        .getInstance()
-                        .getVirtualNetwork(this.getTenantId())
-                        .getFlowManager()
-                        .storeFlowValues(
-                                fm.getFlowMod().getMatch().get(MatchField.ETH_SRC).getBytes(),
-                                fm.getFlowMod().getMatch().get(MatchField.ETH_DST).getBytes()
-                        );
-                link.generateLinkFMs(fm.clone(), flowId);
-                outActions.addAll(
-                        new OVXLinkUtils(
-                                this.getTenantId(),
-                                linkId,
-                                flowId
-                        ).setLinkFields(fm.getOFMessage().getVersion()));
-            } catch (IndexOutOfBoundException e) {
-                SwitchRoute.log.error(
-                        "Too many host to generate the flow pairs in this virtual network {}. "
-                                + "Dropping flow-mod {} ", this.getTenantId(),
-                        fm);
-            } catch (NetworkMappingException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
 
-        if(fm.getFlowMod().getMatch().get(MatchField.ETH_TYPE) == EthType.IPv4) {
-            fm.modifyMatch(
-                    IPMapper.rewriteMatch(
-                            this.getSrcPort().getTenantId(),
-                            fm.getFlowMod().getMatch()
-                    )
-            );
-        }
+        boolean edgeOut = this.getDstPort().isEdge();
 
+         /*
+         * Get the list of physical links mapped to this virtual link, in
+         * REVERSE ORDER
+         */
         PhysicalPort inPort = null;
         PhysicalPort outPort = null;
-
         fm.setOFMessage(fm.getFlowMod().createBuilder()
                 .setBufferId(OFBufferId.NO_BUFFER)
                 .build()
@@ -382,54 +347,182 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
 
         for (final PhysicalLink phyLink : reverseLinks) {
             if (outPort != null) {
+                actionList.clear();
+                //int actLenght = 0;
                 inPort = phyLink.getSrcPort();
 
-                ArrayList<OFAction> actionList = new ArrayList<OFAction>();
+                if (OVXmodeHandler.getOVXmode() == 2) {
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.IN_PORT,
+                                    OFPort.of(inPort.getPortNumber()))
+                            .build());
 
-                OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
-                        .actions().buildOutput()
-                        .setPort(OFPort.of(outPort.getPortNumber()))
-                        .setMaxLen(0xffff)
-                        .build();
+                    //AggFlow: Assign a new match and new actions according to new address assigning method.
 
-                actionList.add(actionOutput);
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.ETH_SRC, MacAddress.of(this.sw.getTenantId()))
+                            .setExact(MatchField.ETH_DST, MacAddress.of(outPort.getParentSwitch().getSwitchId()))
+                            .build());
+                    OFActionSetField outActions = this.factory
+                            .actions().buildSetField()
+                            .setField(this.factory.oxms().ethSrc(MacAddress.of(outPort.getParentSwitch().getSwitchId())))
+                            .build();
+                    this.actionList.add(0, outActions);
 
-                fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
-                        .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPortNumber()))
-                        .build());
+                    outActions = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildSetField()
+                            .setField(this.factory.oxms().ethDst(MacAddress.of(outPort.getLink().getOutLink().getDstSwitch().getSwitchId())))
+                            .build();
+                    this.actionList.add(outActions);
+
+                    outActions = (OFActionSetField) OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildOutput()
+                            .setPort(OFPort.of(outPort.getPortNumber()))
+                            .setMaxLen(0xffff)
+                            .build();
+                    this.actionList.add(outActions);
+                } else {
+                    OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildOutput()
+                            .setPort(OFPort.of(outPort.getPortNumber()))
+                            .setMaxLen(0xffff)
+                            .build();
+
+                    actionList.add(actionOutput);
+
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPortNumber()))
+                            .build());
+                }
 
                 fm.setOFMessage(fm.getFlowMod().createBuilder()
                         .setActions(actionList)
                         .build());
 
-                phyLink.getSrcPort().getParentSwitch()
-                        .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
-                SwitchRoute.log.debug(
-                        "Sending big-switch route intermediate fm to sw {}: {}",
-                        phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                if (OVXmodeHandler.getOVXmode() != 2) {
+                    phyLink.getSrcPort().getParentSwitch()
+                            .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                    SwitchRoute.log.debug(
+                            "Sending big-switch route intermediate fm to sw {}: {}",
+                            phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                }
 
-            } else {
+                if (OVXmodeHandler.getOVXmode() == 2) {
+                    //If link is edgeOut, match field is expanded to network address.If it is core, check the rule is already installed.
+                    if (edgeOut) {
+                  /*  fm.getFlowMod().getMatch()
+                            .createBuilder()
+                            .wildcard(MatchField.IPV4_DST)
+                            .wildcard(MatchField.IPV4_SRC)
+                            .wildcard(MatchField.ETH_TYPE)
+                            .setExact(MatchField.IPV4_DST, IPv4Address.of(MatchField.IPV4_DST))
+                            .setExact(MatchField.IPV4_SRC, IPv4Address.of((MatchField.IPV4_SRC)))
+                            .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                            .build(); */
 
-                fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
-                        .setExact(MatchField.IN_PORT, OFPort.of(phyLink.getSrcPort().getPortNumber()))
-                        .build());
+                        phyLink.getSrcPort().getParentSwitch().sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                        SwitchRoute.log.info("Sending big-switch route intermediate fm to sw {}: {}",
+                                phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                    } else {
+                        boolean duflag = phyLink.getSrcPort().getParentSwitch().getEntrytable().checkduplicate(fm);
+                        if (!duflag) {
 
-                OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
-                        .actions().buildOutput()
-                        .setPort(OFPort.of(this.getDstPort().getPhysicalPortNumber()))
-                        .setMaxLen(0xffff)
-                        .build();
+                            phyLink.getSrcPort().getParentSwitch().sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                            SwitchRoute.log.info("Sending big-switch route intermediate fm to sw {}: {}", phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                        }
+                    }
 
-                outActions.add(actionOutput);
+                }
+            }
+            //when outport==null-->Last fm.
+            else {
 
-                fm.setOFMessage(fm.getFlowMod().createBuilder()
-                        .setActions(outActions)
-                        .build());
+                if (OVXmodeHandler.getOVXmode() != 2) {
+                    final LinkedList<OFAction> outActions = new LinkedList<OFAction>();
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.IN_PORT, OFPort.of(phyLink.getSrcPort().getPortNumber()))
+                            .build());
 
-                phyLink.getSrcPort().getParentSwitch()
-                        .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
-                SwitchRoute.log.debug("Sending big-switch route last fm to sw {}: {}",
-                        phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                    OFActionOutput actionOutput = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildOutput()
+                            .setPort(OFPort.of(this.getDstPort().getPhysicalPortNumber()))
+                            .setMaxLen(0xffff)
+                            .build();
+
+                    outActions.add(actionOutput);
+
+                    fm.setOFMessage(fm.getFlowMod().createBuilder()
+                            .setActions(outActions)
+                            .build());
+
+                    phyLink.getSrcPort().getParentSwitch()
+                            .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                    SwitchRoute.log.debug("Sending big-switch route last fm to sw {}: {}",
+                            phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                } else {
+                /*
+                 * Last fm. Differs from the others because it can apply
+                 * additional actions to the flow
+                 */
+                    actionList.clear();
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.IN_PORT, OFPort.of(phyLink.getSrcPort().getPortNumber()))
+                            .build()
+                    );
+
+                    //assign a new match and new actions according to new address assigning method.
+                    fm.modifyMatch(fm.getFlowMod().getMatch().createBuilder()
+                            .setExact(MatchField.ETH_SRC, MacAddress.of(this.sw.getTenantId()))
+                            .setExact(MatchField.ETH_DST, MacAddress.of(phyLink.getSrcPort().getParentSwitch().getSwitchId()))
+                            .build());
+
+
+                    OFActionSetField outActions = OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildSetField()
+                            .setField(this.factory.oxms().ethSrc(MacAddress.of(this.sw.getTenantId()))).build();
+
+                    actionList.add(outActions);
+
+                    outActions =
+                            OFFactories.getFactory(fm.getOFMessage().getVersion())
+                                    .actions().buildSetField()
+                                    .setField(this.factory.oxms().ethDst(MacAddress.of(phyLink.getSrcSwitch().getPort(this.getDstPort().getPhysicalPortNumber()).getLink().getOutLink().getDstSwitch().getSwitchId())))
+                                    .build();
+                    actionList.add(outActions);
+
+
+                    outActions = (OFActionSetField) OFFactories.getFactory(fm.getOFMessage().getVersion())
+                            .actions().buildOutput()
+                            .setPort(OFPort.of(this.getDstPort().getPhysicalPortNumber()))
+                            .setMaxLen(0xffff)
+                            .build();
+                    actionList.add(outActions);
+
+
+                    fm.setOFMessage(fm.getFlowMod().createBuilder()
+                            .setActions(actionList)
+                            .build());
+
+
+                    //If link is edgeOut, match field is expanded to network address.
+                    //If it is core, check if the rule is already installed.
+                    if (edgeOut) {
+
+
+                        phyLink.getSrcPort().getParentSwitch().sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                        SwitchRoute.log.info("Sending big-switch route last fm to sw {}: {}",
+                                phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                    } else {
+                        boolean duflag = phyLink.getSrcPort().getParentSwitch().getEntrytable().checkduplicate(fm);
+                        if (!duflag) {
+                            phyLink.getSrcPort().getParentSwitch()
+                                    .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                            SwitchRoute.log.info("Sending big-switch route last fm to sw {}: {}",
+                                    phyLink.getSrcPort().getParentSwitch().getName(), fm);
+                        }
+                    }
+
+                }
             }
             outPort = phyLink.getDstPort();
         }
@@ -442,6 +535,7 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
             SwitchRoute.log.warn("Timeout failed, might be a problem for POX controller: {}", e1);
         }
     }
+
 
     /**
      * Generates and installs flow mod on the first physical switch of a switch route,
@@ -495,11 +589,20 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
                             sw.getTenantId(), fm);
                     return;
                 }
-                OVXLinkUtils lUtils = new OVXLinkUtils(this.getTenantId(), link.getLinkId(), flowId);
-                fm.modifyMatch(lUtils.rewriteMatch(fm.getFlowMod().getMatch()));
-                fm.modifyMatch(IPMapper.rewriteMatch(this.getTenantId(), fm.getFlowMod().getMatch()));
 
-                approvedActions.addAll(lUtils.unsetLinkFields(false, false, fm.getOFMessage().getVersion()));
+                if(OVXmodeHandler.getOVXmode()==2) {
+                    OVXLinkUtils lUtils = new OVXLinkUtils(this.getTenantId(), link.getLinkId(), flowId, sw);
+                    fm.modifyMatch(lUtils.rewriteMatch(fm.getFlowMod().getMatch()));
+                    fm.modifyMatch(IPMapper.rewriteMatch(this.getTenantId(), fm.getFlowMod().getMatch()));
+
+                    approvedActions.addAll(lUtils.unsetLinkFields(false, false, fm.getOFMessage().getVersion()));
+                } else {
+                    OVXLinkUtils lUtils = new OVXLinkUtils(this.getTenantId(), link.getLinkId(), flowId);
+                    fm.modifyMatch(lUtils.rewriteMatch(fm.getFlowMod().getMatch()));
+                    fm.modifyMatch(IPMapper.rewriteMatch(this.getTenantId(), fm.getFlowMod().getMatch()));
+
+                    approvedActions.addAll(lUtils.unsetLinkFields(false, false, fm.getOFMessage().getVersion()));
+                }
             } else {
                 SwitchRoute.log.warn(
                         "Cannot retrieve the virtual link between ports {} {}. Dropping packet...",
@@ -507,6 +610,7 @@ public class SwitchRoute extends Link<OVXPort, PhysicalSwitch> implements Persis
                 return;
             }
         } else {
+            log.info("prependRewriteActions");
             approvedActions.addAll(IPMapper.prependRewriteActions(
                     this.getTenantId(), fm.getFlowMod().getMatch()));
         }

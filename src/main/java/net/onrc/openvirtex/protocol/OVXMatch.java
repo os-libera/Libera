@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.protocol;
 
 import java.util.HashMap;
@@ -37,7 +34,7 @@ import org.projectfloodlight.openflow.protocol.match.MatchField;
 
 /**
  * The Class OVXMatch. This class extends the OFMatch class, in order to carry
- * some useful informations for OpenVirteX, as the cookie (used by flowMods
+ * some useful informations for Libera, as the cookie (used by flowMods
  * messages) and the packet data (used by packetOut messages)
  */
 public class OVXMatch {
@@ -65,7 +62,7 @@ public class OVXMatch {
 
 
     /**
-     * Instantiates a new void OVXatch.
+     * Instantiates a new void OVXmatch.
      */
     public OVXMatch(OFVersion ofVersion) {
         this.ofVersion = ofVersion;

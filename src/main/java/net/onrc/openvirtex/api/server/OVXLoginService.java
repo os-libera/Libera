@@ -1,18 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- ******************************************************************************/
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
 package net.onrc.openvirtex.api.server;
 
 import javax.management.remote.JMXPrincipal;
@@ -46,7 +52,7 @@ public class OVXLoginService implements LoginService {
 
     @Override
     public UserIdentity login(final String username, final Object credentials) {
-        return new OpenVirteXAuthenticatedUser(username, (String) credentials)
+        return new LiberaAuthenticatedUser(username, (String) credentials)
                 .getUserIdentity();
     }
 
@@ -67,7 +73,7 @@ public class OVXLoginService implements LoginService {
     /**
      * An authenticated user has an identity and can be logged out.
      */
-    public class OpenVirteXAuthenticatedUser implements Authentication.User {
+    public class LiberaAuthenticatedUser implements Authentication.User {
 
         private final String user;
         @SuppressWarnings("unused")
@@ -81,8 +87,8 @@ public class OVXLoginService implements LoginService {
          * @param password
          *            the user's password
          */
-        public OpenVirteXAuthenticatedUser(final String username,
-                final String password) {
+        public LiberaAuthenticatedUser(final String username,
+                                       final String password) {
             this.user = username;
             this.password = password;
         }

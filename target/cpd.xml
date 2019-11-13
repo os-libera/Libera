@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pmd-cpd>
    <duplication lines="45" tokens="319">
-      <file line="70"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
-      <file line="70"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <file line="76"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="76"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
       <codefragment><![CDATA[                    "Start virtual port {} on virtual switch {} in virtual network {}",
                     port, dpid, virtualNetwork.getTenantId());
             OVXPort ovxPort = virtualNetwork.getSwitch(dpid.longValue())
@@ -52,10 +52,10 @@
 }]]></codefragment>
    </duplication>
    <duplication lines="40" tokens="276">
-      <file line="458"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
-      <file line="544"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
+      <file line="455"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
+      <file line="541"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/db/DBManager.java"/>
       <codefragment><![CDATA[                    .get(TenantHandler.PATH);
             for (Map<String, Object> hop : path) {
                 // Fetch link
@@ -97,11 +97,58 @@
         }
     }]]></codefragment>
    </duplication>
+   <duplication lines="41" tokens="271">
+      <file line="384"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <file line="661"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <codefragment><![CDATA[            newPath.getSrcSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());
+            //newPath.getSrcSwitch().setmFlowMod(oldPath.getSrcSwitch().getmFlowMod());
+            //log.info("getSrcSwitch After " + mplsFlowMod.toString());
+        }
+
+        if(newPath.getDstSwitch() != null) {
+            mplsFlowMod = oldPath.getDstSwitch().getMplsFlowMod().createBuilder().build();
+
+            //log.info("getDstSwitch Before " + ofFlowMod.toString());
+            Match match = mplsFlowMod.getMatch().createBuilder().build();
+
+            match = match.createBuilder()
+                    .setExact(MatchField.ETH_SRC, newPath.getSrcHost().getMac())
+                    .setExact(MatchField.ETH_DST, newPath.getDstHost().getMac())
+                    .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
+                    .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
+                    .build();
+
+            match = OVXMessageUtil.updateMatch(mplsFlowMod.getMatch(), match);
+
+            //log.info("getDstSwitch After " + match.toString());
+
+            List<OFAction> actions = new LinkedList<>();
+
+            OFActionPopMpls actionPopMpls = factory.actions().buildPopMpls()
+                    .setEthertype(EthType.IPv4)
+                    .build();
+            actions.add(actionPopMpls);
+
+            OFActionOutput ofActionOutput = factory.actions().buildOutput()
+                    .setPort(OFPort.of(newPath.getDstSwitch().getOutPort().getPortNumber()))
+                    .build();
+            actions.add(ofActionOutput);
+
+            mplsFlowMod = mplsFlowMod.createBuilder()
+                    .setPriority(mplsFlowMod.getPriority())
+                    .setMatch(match)
+                    .setActions(actions)
+                    .build();
+
+            newPath.getDstSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());]]></codefragment>
+   </duplication>
    <duplication lines="35" tokens="249">
-      <file line="62"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
-      <file line="61"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <file line="68"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="67"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
       <codefragment><![CDATA[            this.log.info("Start virtual switch {} in virtual network {}",
                     dpid, virtualNetwork.getTenantId());
             OVXSwitch ovxSwitch = virtualNetwork.getSwitch(dpid.longValue());
@@ -139,10 +186,10 @@
 }]]></codefragment>
    </duplication>
    <duplication lines="42" tokens="219">
-      <file line="76"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/MonitoringHandler.java"/>
-      <file line="174"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/TenantHandler.java"/>
+      <file line="82"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/MonitoringHandler.java"/>
+      <file line="187"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/TenantHandler.java"/>
       <codefragment><![CDATA[            this.put("getVirtualAddressMapping", new GetVirtualAddressMapping());
         }
     };
@@ -186,11 +233,48 @@
 
 }]]></codefragment>
    </duplication>
+   <duplication lines="31" tokens="202">
+      <file line="424"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <file line="701"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <codefragment><![CDATA[            newPath.getDstSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());
+            //newPath.getDstSwitch().setmFlowMod(oldPath.getDstSwitch().getmFlowMod());
+            //log.info("getDstSwitch After " + mplsFlowMod.toString());
+        }
+
+        if(newPath.getIntermediate().size() != 0) {
+            mplsFlowMod = oldPath.getDstSwitch().getMplsFlowMod().createBuilder().build();
+
+            for (Node node : newPath.getIntermediate()) {
+
+                Match match = mplsFlowMod.getMatch().createBuilder().build();
+
+                match = match.createBuilder()
+                        .setExact(MatchField.ETH_TYPE, EthType.MPLS_UNICAST)
+                        .setExact(MatchField.MPLS_LABEL, U32.of(label.getLabelValue()))
+                        .build();
+
+                List<OFAction> actions = new LinkedList<>();
+
+                OFActionOutput ofActionOutput = factory.actions().buildOutput()
+                        .setPort(OFPort.of(node.getOutPort().getPortNumber()))
+                        .build();
+                actions.add(ofActionOutput);
+
+                mplsFlowMod = mplsFlowMod.createBuilder()
+                        .setPriority(mplsFlowMod.getPriority())
+                        .setMatch(match)
+                        .setActions(actions)
+                        .build();
+
+                node.setMplsFlowMod(mplsFlowMod.createBuilder().build());]]></codefragment>
+   </duplication>
    <duplication lines="24" tokens="199">
-      <file line="100"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXLink.java"/>
-      <file line="83"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
+      <file line="106"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXLink.java"/>
+      <file line="89"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
       <codefragment><![CDATA[                Map<String, Object> reply = new HashMap<String, Object>(
                         virtualLink.getDBObject());
                 reply.put(TenantHandler.TENANT, virtualLink.getTenantId());
@@ -217,12 +301,12 @@
                                     + ": Impossible to create the virtual link, too many links in this virtual network : "]]></codefragment>
    </duplication>
    <duplication lines="28" tokens="192">
-      <file line="75"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
-      <file line="87"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
-      <file line="87"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <file line="81"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
+      <file line="93"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="93"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
       <codefragment><![CDATA[                    + e.getMessage()), 0);
         } catch (final InvalidPortException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -253,10 +337,10 @@
 }]]></codefragment>
    </duplication>
    <duplication lines="27" tokens="187">
-      <file line="106"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
-      <file line="228"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
+      <file line="112"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
+      <file line="218"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
       <codefragment><![CDATA[        if (this.checksum == 0) {
             bb.rewind();
             int accumulation = 0;
@@ -285,13 +369,88 @@
             this.checksum = (short) (~accumulation & 0xffff);
             bb.putShort(6, this.checksum);]]></codefragment>
    </duplication>
+   <duplication lines="28" tokens="179">
+      <file line="357"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <file line="634"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <codefragment><![CDATA[            match = OVXMessageUtil.updateMatch(mplsFlowMod.getMatch(), match);
+
+            //log.info("getSrcSwitch After " + match.toString());
+
+            List<OFAction> actions = new LinkedList<>();
+
+            OFActionPushMpls actionPushMpls = factory.actions().buildPushMpls()
+                    .setEthertype(EthType.MPLS_UNICAST)
+                    .build();
+            actions.add(actionPushMpls);
+
+            OFActionSetField actionSetMplsLabel = factory.actions().buildSetField()
+                    .setField(factory.oxms().mplsLabel(U32.of(label.getLabelValue())))
+                    .build();
+            actions.add(actionSetMplsLabel);
+
+            OFActionOutput ofActionOutput = factory.actions().buildOutput()
+                    .setPort(OFPort.of(newPath.getSrcSwitch().getOutPort().getPortNumber()))
+                    .build();
+            actions.add(ofActionOutput);
+
+            mplsFlowMod = mplsFlowMod.createBuilder()
+                    .setPriority(mplsFlowMod.getPriority())
+                    .setMatch(match)
+                    .setActions(actions)
+                    .build();
+
+            newPath.getSrcSwitch().setMplsFlowMod(mplsFlowMod.createBuilder().build());]]></codefragment>
+   </duplication>
+   <duplication lines="35" tokens="166">
+      <file line="431"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <file line="575"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <codefragment><![CDATA[                        if (this.getOFMessage().getVersion() == OFVersion.OF_10) {
+
+                         /*  this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.IN_PORT)
+                                    .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                    .build();
+
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_SRC)
+                                    .setExact(MatchField.ETH_SRC, MacAddress.of(lUtils.getSrcMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_DST)
+                                    .setExact(MatchField.ETH_DST, MacAddress.of(lUtils.getDstMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_TYPE)
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .build();
+*/
+                            this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                    .setExact(MatchField.IN_PORT, this.getFlowMod().getMatch().get(MatchField.IN_PORT))
+                                    .setExact(MatchField.ETH_SRC, this.getFlowMod().getMatch().get(MatchField.ETH_SRC))
+                                    .setExact(MatchField.ETH_DST, this.getFlowMod().getMatch().get(MatchField.ETH_DST))
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .setExact(MatchField.IPV4_SRC, this.getFlowMod().getMatch().get(IPV4_SRC))
+                                    .setExact(MatchField.IPV4_DST, this.getFlowMod().getMatch().get(IPV4_DST))
+                                    .build()));]]></codefragment>
+   </duplication>
    <duplication lines="25" tokens="165">
-      <file line="39"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
-      <file line="41"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
-      <file line="41"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
+      <file line="45"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXPort.java"/>
+      <file line="47"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXPort.java"/>
+      <file line="47"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXPort.java"/>
       <codefragment><![CDATA[    Logger log = LogManager.getLogger(RemoveOVXPort.class.getName());
 
     @Override
@@ -318,13 +477,94 @@
 
             virtualNetwork.removePort(dpid.longValue(), port.shortValue());]]></codefragment>
    </duplication>
+   <duplication lines="35" tokens="165">
+      <file line="431"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <file line="474"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <file line="575"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <codefragment><![CDATA[                        if (this.getOFMessage().getVersion() == OFVersion.OF_10) {
+
+                         /*  this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.IN_PORT)
+                                    .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                    .build();
+
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_SRC)
+                                    .setExact(MatchField.ETH_SRC, MacAddress.of(lUtils.getSrcMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_DST)
+                                    .setExact(MatchField.ETH_DST, MacAddress.of(lUtils.getDstMac().getBytes()))
+                                    .build();
+
+                            this.getFlowMod().getMatch()
+                                    .createBuilder()
+                                    .wildcard(MatchField.ETH_TYPE)
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .build();
+*/
+                            this.modifyMatch(OVXMessageUtil.updateMatch(this.getFlowMod().getMatch(), this.getFlowMod().getMatch().createBuilder()
+                                    .setExact(MatchField.IN_PORT, this.getFlowMod().getMatch().get(MatchField.IN_PORT))
+                                    .setExact(MatchField.ETH_SRC, this.getFlowMod().getMatch().get(MatchField.ETH_SRC))
+                                    .setExact(MatchField.ETH_DST, this.getFlowMod().getMatch().get(MatchField.ETH_DST))
+                                    .setExact(MatchField.ETH_TYPE, EthType.IPv4)
+                                    .setExact(MatchField.IPV4_SRC, this.getFlowMod().getMatch().get(IPV4_SRC))
+                                    .setExact(MatchField.IPV4_DST, this.getFlowMod().getMatch().get(IPV4_DST))
+                                    .build()));]]></codefragment>
+   </duplication>
+   <duplication lines="32" tokens="155">
+      <file line="128"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/failover/FailOver.java"/>
+      <file line="568"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/vm/Migration.java"/>
+      <codefragment><![CDATA[    }
+
+
+
+
+    public void removeOldPhysicalPathFlowEntry(PhysicalPath pPath) {
+
+        if(pPath.isOriginalPath()) {
+            if(pPath.getMplsLabel().getPathIDs().size() == 0) {
+                log.info("Remove Old Original PhysicalPath for PathID [{}]", pPath.getPathID());
+
+                sendFlowDeleteStrict(pPath.getSrcSwitch());
+
+                for(Node node : pPath.getIntermediate()) {
+                    sendFlowDeleteStrict(node);
+                }
+
+                sendFlowDeleteStrict(pPath.getDstSwitch());
+            }else{
+                log.info("Remove Old Original PhysicalPath Edge Switch for PathID [{}]", pPath.getPathID());
+
+                sendFlowDeleteStrict(pPath.getSrcSwitch());
+                sendFlowDeleteStrict(pPath.getDstSwitch());
+            }
+        }else{
+            log.info("Remove Old Referenced PhysicalPath Edge Switch for PathID [{}]", pPath.getPathID());
+            sendFlowDeleteStrict(pPath.getSrcSwitch());
+            sendFlowDeleteStrict(pPath.getDstSwitch());
+        }
+    }
+
+    public void sendFlowDeleteStrict(Node node) {]]></codefragment>
+   </duplication>
    <duplication lines="24" tokens="151">
-      <file line="71"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
-      <file line="74"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
-      <file line="73"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <file line="77"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="80"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="79"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
       <codefragment><![CDATA[                    + e.getMessage()), 0);
         } catch (final InvalidDPIDException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -350,11 +590,49 @@
 
 }]]></codefragment>
    </duplication>
+   <duplication lines="32" tokens="147">
+      <file line="435"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/vm/Migration.java"/>
+      <file line="515"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/vm/Migration.java"/>
+      <codefragment><![CDATA[                tempNode.setOutPort(newpPath.getDstHost().getPort().getPhysicalPort());
+
+                newpPath.setDstSwitch(tempNode);
+
+            }else{
+                //log.info("findPhysicalPath physicalLinks.size( {} )", physicalLinks.size());
+                Node srcNode = null;
+                Node dstNode = null;
+                LinkedList<Node> nodes = new LinkedList<>();
+
+                for(PhysicalLink plink : physicalLinks) {
+                    if(srcNode == null) {
+                        srcNode = new Node(plink.getSrcSwitch());
+                    }
+
+                    srcNode.setOutPort(plink.getSrcPort());
+
+                    nodes.add(srcNode);
+
+                    dstNode = new Node(plink.getDstSwitch());
+                    dstNode.setInPort(plink.getDstPort());
+
+                    srcNode = dstNode;
+
+                    if(plink.equals(physicalLinks.getLast())) {
+                        nodes.add(srcNode);
+                    }
+                }
+
+                for(Node node : nodes) {
+                    if(node.equals(nodes.getFirst())) {
+                        node.setInPort(physicalLinks.get(0).getSrcSwitch().getPort(pInport));]]></codefragment>
+   </duplication>
    <duplication lines="24" tokens="146">
-      <file line="42"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/MonitoringService.java"/>
-      <file line="42"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/TenantService.java"/>
+      <file line="48"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/MonitoringService.java"/>
+      <file line="48"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/TenantService.java"/>
       <codefragment><![CDATA[        this.dispatcher.register(new MonitoringHandler());
     }
 
@@ -380,43 +658,11 @@
             this.writeJSONObject(response, jsonResp);
         } catch (final IOException e) {]]></codefragment>
    </duplication>
-   <duplication lines="26" tokens="139">
-      <file line="209"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/actions/OVXActionOutput.java"/>
-      <file line="288"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/actions/OVXActionOutput.java"/>
-      <codefragment><![CDATA[                        } else {
-                            /*
-                             * If inPort is edge and outPort is link:
-                             * - retrieve link
-                             * - generate the link's FMs
-                             * - add actions to current FM to write packet fields
-                             * related to the link
-                             */
-                            final OVXLink link = outPort.getLink().getOutLink();
-                            linkId = link.getLinkId();
-                            try {
-                                flowId = vnet.getFlowManager().storeFlowValues(
-                                        match.getMatch().get(MatchField.ETH_SRC).getBytes(),
-                                        match.getMatch().get(MatchField.ETH_DST).getBytes());
-                                link.generateLinkFMs(fm.clone(), flowId);
-                                approvedActions.addAll(new OVXLinkUtils(sw.getTenantId(), linkId, flowId)
-                                        .setLinkFields(sw.getOfVersion()));
-                            } catch (IndexOutOfBoundException e) {
-                                log.error(
-                                        "Too many host to generate the flow pairs in this virtual network {}. "
-                                                + "Dropping flow-mod {} ",
-                                        sw.getTenantId(), fm);
-                                throw new DroppedMessageException();
-                            }
-                        }
-                    } else {]]></codefragment>
-   </duplication>
    <duplication lines="24" tokens="138">
-      <file line="122"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/statistics/OVXAggregateStatsRequest.java"/>
-      <file line="131"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/messages/statistics/OVXFlowStatsRequest.java"/>
+      <file line="119"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/statistics/OVXAggregateStatsRequest.java"/>
+      <file line="128"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/statistics/OVXFlowStatsRequest.java"/>
       <codefragment><![CDATA[    }
 
     private List<PhysicalSwitch> getPhysicalSwitches(OVXSwitch sw) {
@@ -443,10 +689,10 @@
         return this.ofAggregateStatsRequest.hashCode();]]></codefragment>
    </duplication>
    <duplication lines="18" tokens="137">
-      <file line="93"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectHost.java"/>
-      <file line="92"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXPort.java"/>
+      <file line="99"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectHost.java"/>
+      <file line="98"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXPort.java"/>
       <codefragment><![CDATA[                    + ": Unable to connect host : " + e.getMessage()),
                     0);
         } catch (final InvalidPortException e) {
@@ -467,10 +713,10 @@
         } catch (final NetworkMappingException e) {]]></codefragment>
    </duplication>
    <duplication lines="14" tokens="136">
-      <file line="87"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
-      <file line="99"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
+      <file line="93"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
+      <file line="105"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
       <codefragment><![CDATA[                                    + e.getMessage()), 0);
         } catch (final InvalidDPIDException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -487,16 +733,16 @@
         } catch (ControllerUnavailableException e) {]]></codefragment>
    </duplication>
    <duplication lines="14" tokens="134">
-      <file line="87"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
-      <file line="99"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
-      <file line="71"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
-      <file line="74"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
-      <file line="73"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <file line="93"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/AddController.java"/>
+      <file line="105"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/CreateOVXSwitch.java"/>
+      <file line="77"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="80"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="79"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
       <codefragment><![CDATA[                                    + e.getMessage()), 0);
         } catch (final InvalidDPIDException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -512,13 +758,38 @@
                     + ": " + e.getMessage()), 0);
         } catch (ControllerUnavailableException e) {]]></codefragment>
    </duplication>
+   <duplication lines="19" tokens="125">
+      <file line="132"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/path/physicalpath/PhysicalPath.java"/>
+      <file line="403"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/path/virtualpath/VirtualPath.java"/>
+      <codefragment><![CDATA[        str = str + "FlowID = " + this.getFlowID() + "\n";
+        str = str + "TenantID = " + this.getTenantID() + "\n";
+
+        if(this.getSrcSwitch() != null) {
+            str = str + "SrcSwitch = " + this.getSrcSwitch().toString() + "\n";
+        }
+
+        if(this.getIntermediate().size() != 0) {
+            for(Node node : this.getIntermediate()) {
+                //log.info("Intermediate = " + node.toString());
+                str = str + "Intermediate = " + node.toString() + "\n";
+            }
+        }
+
+        if(this.getDstSwitch() != null) {
+            str = str + "DstSwitch = " + this.getDstSwitch().toString() + "\n";
+        }
+
+        if(this.originalPathID != null) {]]></codefragment>
+   </duplication>
    <duplication lines="22" tokens="122">
-      <file line="39"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
-      <file line="40"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
-      <file line="40"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+      <file line="45"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="46"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="46"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
       <codefragment><![CDATA[    Logger log = LogManager.getLogger(RemoveOVXSwitch.class.getName());
 
 
@@ -542,11 +813,41 @@
                     .intValue());
             virtualNetwork.removeSwitch(dpid.longValue());]]></codefragment>
    </duplication>
+   <duplication lines="24" tokens="115">
+      <file line="340"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/path/physicalpath/PhysicalPath.java"/>
+      <file line="444"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/path/physicalpath/PhysicalPath.java"/>
+      <codefragment><![CDATA[                Node srcNode = null;
+                Node dstNode = null;
+                LinkedList<Node> nodes = new LinkedList<>();
+
+                for(PhysicalLink plink : physicalLinks) {
+                    if(srcNode == null) {
+                        srcNode = new Node(plink.getSrcSwitch());
+                    }
+
+                    srcNode.setOutPort(plink.getSrcPort());
+
+                    nodes.add(srcNode);
+
+                    dstNode = new Node(plink.getDstSwitch());
+                    dstNode.setInPort(plink.getDstPort());
+
+                    srcNode.setNextNode(dstNode);
+
+                    srcNode = dstNode;
+
+                    if(plink.equals(physicalLinks.getLast())) {
+                        nodes.add(srcNode);
+                    }
+                }]]></codefragment>
+   </duplication>
    <duplication lines="20" tokens="114">
-      <file line="217"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
-      <file line="253"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
+      <file line="214"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
+      <file line="250"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/linkdiscovery/SwitchDiscoveryManager.java"/>
       <codefragment><![CDATA[    private OFPacketOut createLLDPPacketOut(final PhysicalPort port)
             throws PortMappingException {
         if (port == null) {
@@ -569,10 +870,10 @@
         final byte[] lldp = this.ethPacket.serialize();]]></codefragment>
    </duplication>
    <duplication lines="19" tokens="110">
-      <file line="134"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXRoute.java"/>
-      <file line="116"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
+      <file line="140"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/ConnectOVXRoute.java"/>
+      <file line="122"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/SetOVXLinkPath.java"/>
       <codefragment><![CDATA[                                    + e.getMessage()), 0);
         } catch (final NetworkMappingException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -594,20 +895,20 @@
 }]]></codefragment>
    </duplication>
    <duplication lines="20" tokens="110">
-      <file line="77"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/DisconnectOVXLink.java"/>
-      <file line="72"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXNetwork.java"/>
-      <file line="75"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
-      <file line="67"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXNetwork.java"/>
+      <file line="83"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/DisconnectOVXLink.java"/>
       <file line="78"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
-      <file line="68"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXNetwork.java"/>
-      <file line="77"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXNetwork.java"/>
+      <file line="81"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/RemoveOVXSwitch.java"/>
+      <file line="73"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXNetwork.java"/>
+      <file line="84"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StartOVXSwitch.java"/>
+      <file line="74"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXNetwork.java"/>
+      <file line="83"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/api/service/handlers/tenant/StopOVXSwitch.java"/>
       <codefragment><![CDATA[                    + ": Invalid virtual link : " + e.getMessage()), 0);
         } catch (final InvalidTenantIdException e) {
             resp = new JSONRPC2Response(new JSONRPC2Error(
@@ -630,10 +931,10 @@
 }]]></codefragment>
    </duplication>
    <duplication lines="17" tokens="104">
-      <file line="224"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
-      <file line="156"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
+      <file line="214"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/TCP.java"/>
+      <file line="146"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
       <codefragment><![CDATA[            ((IPv4) this.parent).setProtocol(IPv4.PROTOCOL_TCP);
         }
 
@@ -653,10 +954,10 @@
                 accumulation += length & 0xffff;]]></codefragment>
    </duplication>
    <duplication lines="13" tokens="102">
-      <file line="106"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
-      <file line="160"
-            path="/media/sf_OpenVerteX/OpenVirteX-0.0-MAINT-OpenFlowj/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
+      <file line="112"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/AbstractSegment.java"/>
+      <file line="150"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/packet/UDP.java"/>
       <codefragment><![CDATA[        if (this.checksum == 0) {
             bb.rewind();
             int accumulation = 0;
@@ -670,5 +971,49 @@
                         + (ipv4.getDestinationAddress() & 0xffff);
                 accumulation += ipv4.getProtocol() & 0xff;
                 accumulation += length & 0xffff;]]></codefragment>
+   </duplication>
+   <duplication lines="13" tokens="101">
+      <file line="345"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <file line="620"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/services/forwarding/mpls/MplsForwarding.java"/>
+      <codefragment><![CDATA[        OFFlowMod mplsFlowMod = null;
+
+        if(newPath.getSrcSwitch() != null) {
+            mplsFlowMod = oldPath.getSrcSwitch().getMplsFlowMod().createBuilder().build();
+
+            //log.info("getSrcSwitch Before " + ofFlowMod.toString());
+            Match match = mplsFlowMod.getMatch().createBuilder().build();
+
+            match = match.createBuilder()
+                    .setExact(MatchField.IN_PORT, OFPort.of(newPath.getSrcSwitch().getInPort().getPortNumber()))
+                    .build();
+
+            match = OVXMessageUtil.updateMatch(mplsFlowMod.getMatch(), match);]]></codefragment>
+   </duplication>
+   <duplication lines="19" tokens="100">
+      <file line="295"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <file line="377"
+            path="/home/con2/anu/Libera0.1/src/main/java/net/onrc/openvirtex/messages/OVXFlowMod.java"/>
+      <codefragment><![CDATA[    private void prepAndSendSouth(OVXPort inPort, boolean pflag, OVXMatch ovxMatch) throws IndexOutOfBoundException {
+
+        if (!inPort.isActive()) {
+            log.warn("Virtual network {}: port {} on switch {} is down.",
+                    sw.getTenantId(), inPort.getPortNumber(),
+                    sw.getSwitchName());
+            return;
+        }
+
+        this.modifyMatch(
+                OVXMessageUtil.updateMatch(
+                        this.getFlowMod().getMatch(),
+                        this.getFlowMod().getMatch().createBuilder()
+                                .setExact(MatchField.IN_PORT, OFPort.of(inPort.getPhysicalPortNumber()))
+                                .build()
+                )
+        );
+
+        OVXMessageUtil.translateXid(this, inPort);]]></codefragment>
    </duplication>
 </pmd-cpd>

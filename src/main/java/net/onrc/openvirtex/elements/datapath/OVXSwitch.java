@@ -1,34 +1,31 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.datapath;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.onrc.openvirtex.api.service.handlers.TenantHandler;
-import net.onrc.openvirtex.core.OpenVirteXController;
+import net.onrc.openvirtex.core.LiberaController;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
 import net.onrc.openvirtex.db.DBManager;
 import net.onrc.openvirtex.elements.Persistable;
@@ -127,6 +124,8 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
     public Integer getTenantId() {
         return this.tenantId;
     }
+
+
 
     /**
      * Gets the miss send len.
@@ -249,7 +248,7 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
      * @param physicalSwitches
      */
     public void register(final List<PhysicalSwitch> physicalSwitches) {
-        // OVXSwitch는 동일한 OpenFlow Version을 지원하는 PhysicalSwitch에 생성된다
+        // OVXSwitch? ??? OpenFlow Version? ???? PhysicalSwitch? ????
         //log.info("OVXSwitch[" + this.getSwitchId() + "] is made in " + )
         this.setOfVersion(physicalSwitches.get(0).getOfVersion());
 
@@ -389,7 +388,7 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
         }
         this.addDefaultPort(portList);
 
-        //1.0일때 1.3일때 어떻게 할 것인지 고려해야함
+        //1.0?? 1.3?? ??? ? ??? ?????
         Set<OFActionType> actionTypeSet = new HashSet<>();
         actionTypeSet.add(OFActionType.OUTPUT);
         actionTypeSet.add(OFActionType.SET_VLAN_VID);
@@ -456,7 +455,7 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
     public boolean boot() {
         this.generateFeaturesReply();
 
-        final OpenVirteXController ovxController = OpenVirteXController
+        final LiberaController ovxController = LiberaController
                 .getInstance();
         ovxController.registerOVXSwitch(this);
         this.setActive(true);
@@ -566,17 +565,17 @@ public abstract class OVXSwitch extends Switch<OVXPort> implements Persistable {
 
         XidPair<Channel> pair = channelMux.untranslate((int)msg.getOFMessage().getXid());
         Channel c = null;
-
         if (pair != null) {
             msg.setOFMessage(msg.getOFMessage().createBuilder().setXid(pair.getXid()).build());
             c = pair.getSwitch();
+
         }
 
         if (this.isConnected && this.isActive) {
             roleMan.sendMsg(msg.getOFMessage(), c);
         } else {
             // TODO: we probably should install a drop rule here.
-            log.warn(
+            log.info(
                     "Virtual switch {} is not active or is not connected to a controller",
                     switchName);
         }

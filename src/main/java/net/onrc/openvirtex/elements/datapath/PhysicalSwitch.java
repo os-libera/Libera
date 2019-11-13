@@ -1,37 +1,38 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.datapath;
 
 import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import net.onrc.openvirtex.api.service.handlers.monitoring.GetVirtualHosts;
 import net.onrc.openvirtex.core.io.OVXSendMsg;
+import net.onrc.openvirtex.elements.address.PhysicalIPAddress;
 import net.onrc.openvirtex.elements.datapath.statistics.StatisticsManager;
 import net.onrc.openvirtex.elements.network.PhysicalNetwork;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
 import net.onrc.openvirtex.exceptions.DuplicateIndexException;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.SwitchMappingException;
@@ -51,12 +52,10 @@ import org.apache.logging.log4j.Logger;
 import org.jboss.netty.channel.Channel;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
-import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.OFPort;
-import org.projectfloodlight.openflow.types.U64;
 
 public class PhysicalSwitch extends Switch<PhysicalPort> {
     private static Logger log = LogManager.getLogger(PhysicalSwitch.class.getName());
@@ -73,11 +72,18 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
 
     private AtomicReference<Map<Integer, List<OFFlowStatsEntry>>> flowStats;
 
+
+    // AggFlow: The Physical Flow Entry Table to manage physical flow rule
+    private PhysicalFlowTable phyFlowentry;
+    private List<PhysicalIPAddress> ipList;
+
     //for LISP
     private int switchLoID;
     private IPv4Address physicalAddress;
     //for path virtualization
     private HashSet<Integer> pathIDs;
+
+
 
     class DeregAction implements Runnable {
 
@@ -125,11 +131,12 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
         this.setOfVersion(ofv);
 
         this.statsMan = new StatisticsManager(this);
-
+        this.phyFlowentry = new PhysicalFlowTable(this); //AggFlow
         this.switchLoID = this.switchLocIDDistributor.getNewLocId();
         this.physicalAddress = IPv4Address.of(this.switchLoID);
         this.pathIDs = new HashSet<>();
-
+        //kllaf
+        this.ipList = new ArrayList<PhysicalIPAddress>();
         //System.out.printf("Switch LOD %d\n", this.switchLoID);
     }
 
@@ -156,8 +163,10 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
      */
     @Override
     public void handleIO(final OVXMessage msg, Channel channel) {
+        this.log.debug("OVX msg and channel= ", msg, channel);
         try {
             ((Virtualizable) msg).virtualize(this);
+
         } catch (final ClassCastException e) {
             PhysicalSwitch.log.error("Received illegal message : " + msg.getOFMessage().toString());
         }
@@ -253,6 +262,8 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
         OVXMessage dFm = new OVXMessage(ofFlowAdd);
         this.sendMsg(dFm, this);
 
+
+
         ofFlowAdd = ofFactory.buildFlowAdd()
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.ETH_TYPE, EthType.ARP)
@@ -334,6 +345,13 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
 
         return false;
     }
+    /** AggFlow:
+     * Gets the physical flow entry table.
+     * @return the physical flow entry table instance
+     */
+    public PhysicalFlowTable getEntrytable(){
+        return this.phyFlowentry;
+    }
 
     public int translate(final OVXMessage ofm, final OVXSwitch sw) {
         return this.translator.translate((int)ofm.getOFMessage().getXid(), sw);
@@ -357,6 +375,15 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     public List<OFFlowStatsEntry> getFlowStats(int tid) {
+        if(OVXmodeHandler.getOVXmode()!=1){
+            Map<Integer, List<OFFlowStatsEntry>> stats = this.flowStats.get();
+            if (stats != null && stats.containsKey(tid)) {
+                return Collections.unmodifiableList(stats.get(tid));
+            }
+            return null;
+        }
+        else {
+            log.info("In LiteVisor mode, OVX mode={}", OVXmodeHandler.getOVXmode());
         Collection<VirtualPath> vPaths = VirtualPathBuilder.getInstance().getVirtualPaths();
         PhysicalPath pPath = null;
         PhysicalPath mPath = null;
@@ -364,55 +391,59 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
 
         List<OFFlowStatsEntry> entries = new LinkedList<>();
 
-        //log.info("Switch LOC {}", this.getSwitchLocID());
+        log.info("Switch LOC {}", this.getSwitchLocID());
 
-        for(VirtualPath vPath : vPaths) {
-            if (vPath.getTenantID() == tid) {
 
-                pPath = vPath.getPhysicalPath();
-                pNode = pPath.getCorrespondingNode(this);
 
-                if(vPath.isMigrated()) {
-                    mPath = vPath.getMigratedPhysicalPath();
-                    mNode = mPath.getCorrespondingNode(this);
+            for (VirtualPath vPath : vPaths) {
+                if (vPath.getTenantID() == tid) {
 
-                    if(pNode != null & mNode == null) {
-                        if(pNode.getFlowStatsEntry() != null) {
-                            log.debug("1. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
-                                    pNode.getFlowStatsEntry().getMatch().toString());
-                            entries.add(pNode.getFlowStatsEntry());
-                        }else{
-                            log.debug("1. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                    pPath = vPath.getPhysicalPath();
+                    pNode = pPath.getCorrespondingNode(this);
+
+                    if (vPath.isMigrated()) {
+                        mPath = vPath.getMigratedPhysicalPath();
+                        mNode = mPath.getCorrespondingNode(this);
+
+                        if (pNode != null & mNode == null) {
+                            if (pNode.getFlowStatsEntry() != null) {
+                                log.debug("1. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                        pNode.getFlowStatsEntry().getMatch().toString());
+                                entries.add(pNode.getFlowStatsEntry());
+                            } else {
+                                log.debug("1. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                            }
+                        } else if (pNode != null & mNode != null) {
+                            if (pNode.getFlowStatsEntry() != null) {
+                                log.debug("2. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                        pNode.getFlowStatsEntry().getMatch().toString());
+                                entries.add(pNode.getFlowStatsEntry());
+                            } else {
+                                log.debug("2. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                            }
+                        } else if (pNode == null & mNode != null) {
+                            log.debug("3. Switch[{}] FlowID {} pNode == null & mNode != null", this.getSwitchLocID(), vPath.getFlowID());
+
+                        } else {
+                            log.debug("4. Switch[{}] FlowID {} pNode == null & mNode == null", this.getSwitchLocID(), vPath.getFlowID());
                         }
-                    }else if(pNode != null & mNode != null) {
-                        if(pNode.getFlowStatsEntry() != null) {
-                            log.debug("2. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
-                                    pNode.getFlowStatsEntry().getMatch().toString());
-                            entries.add(pNode.getFlowStatsEntry());
-                        }else{
-                            log.debug("2. Switch[{}] pNode.getFlowStatsEntry() == null", this.getSwitchLocID());
+                    } else {
+                        if (pNode != null) {
+                            if (pNode.getFlowStatsEntry() != null) {
+                                log.debug("5. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
+                                        pNode.getFlowStatsEntry().getMatch().toString());
+                                entries.add(pNode.getFlowStatsEntry());
+                            } else {
+                                log.debug("5. Switch[{}] FlowID {} pNode.getFlowStatsEntry() == null", this.getSwitchLocID(), vPath.getFlowID());
+                            }
+                        } else {
+                            log.debug("pNode == null");
                         }
-                    }else if(pNode == null & mNode != null) {
-                        log.debug("3. Switch[{}] FlowID {} pNode == null & mNode != null", this.getSwitchLocID(), vPath.getFlowID());
-
-                    }else{
-                        log.debug("4. Switch[{}] FlowID {} pNode == null & mNode == null", this.getSwitchLocID(), vPath.getFlowID());
-                    }
-                }else{
-                    if(pNode != null) {
-                        if(pNode.getFlowStatsEntry() != null) {
-                            log.debug("5. Switch[{}] FlowID {} {} {}", this.getSwitchLocID(), vPath.getFlowID(), pNode.getFlowStatsEntry().getCookie(),
-                                    pNode.getFlowStatsEntry().getMatch().toString());
-                            entries.add(pNode.getFlowStatsEntry());
-                        }else{
-                            log.debug("5. Switch[{}] FlowID {} pNode.getFlowStatsEntry() == null", this.getSwitchLocID(), vPath.getFlowID());
-                        }
-                    }else{
-                        log.debug("pNode == null");
                     }
                 }
-            }
-        }
+
+    }
+
 
         if(entries.size() == 0)
             return null;
@@ -426,7 +457,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
             return Collections.unmodifiableList(stats.get(tid));
         }
         return null;*/
-    }
+    } }
 
     private OFFlowStatsEntry getRelatedEntry(PhysicalPath pPath) {
 
@@ -450,7 +481,7 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
     }
 
     public void removeFlowMods(OVXStatisticsReply msg) {
-        //log.info("removeFlowMods {}", msg.getOFMessage().toString());
+        log.info("removeFlowMods {}", msg.getOFMessage().toString());
         OFFlowStatsReply ofStatsReply = (OFFlowStatsReply)msg.getOFMessage();
 
         int tid = (int)ofStatsReply.getXid() >> 16;

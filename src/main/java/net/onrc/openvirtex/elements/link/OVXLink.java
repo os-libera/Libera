@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.elements.link;
 
 import java.util.ArrayList;
@@ -43,12 +40,15 @@ import net.onrc.openvirtex.elements.datapath.OVXFlowTable;
 import net.onrc.openvirtex.elements.datapath.OVXSwitch;
 import net.onrc.openvirtex.elements.port.OVXPort;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeManager;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
 import net.onrc.openvirtex.exceptions.LinkMappingException;
 import net.onrc.openvirtex.exceptions.NetworkMappingException;
 import net.onrc.openvirtex.exceptions.PortMappingException;
 import net.onrc.openvirtex.messages.OVXFlowMod;
 
+import net.onrc.openvirtex.messages.OVXMessageUtil;
 import net.onrc.openvirtex.routing.RoutingAlgorithms;
 import net.onrc.openvirtex.routing.RoutingAlgorithms.RoutingType;
 
@@ -60,6 +60,7 @@ import com.google.gson.annotations.SerializedName;
 import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
+import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.*;
 
@@ -83,6 +84,8 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
     private final TreeMap<Byte, List<PhysicalLink>> backupLinks;
     private final TreeMap<Byte, List<PhysicalLink>> unusableLinks;
     private Mappable map = null;
+    //int mode;
+   // private OFFactory factory = OFFactories.getFactory(fm.getOFMessage().getVersion());
 
     /**
      * Instantiates a new virtual link. Sets its priority to 0.
@@ -118,6 +121,7 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
         }
         this.srcPort.getPhysicalPort().removeOVXPort(this.srcPort);
         this.srcPort.getPhysicalPort().setOVXPort(this.srcPort);
+
     }
 
     /**
@@ -362,6 +366,7 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
      *            the flow identifier
      */
     public void generateLinkFMs(final OVXFlowMod fm, final Integer flowId) {
+
         /*
          * Change the packet match: 1) change the fields where the virtual link
          * info are stored 2) change the fields where the physical IPs are
@@ -426,28 +431,79 @@ public class OVXLink extends Link<OVXPort, OVXSwitch> {
                         .build()
                 );
 
+
+
                 ArrayList<OFAction> actionList = new ArrayList<OFAction>();
 
-                OFActionOutput actionOutput =
-                        OFFactories.getFactory(fm.getOFMessage().getVersion())
-                                .actions().buildOutput()
-                                .setPort(OFPort.of(outPort.getPortNumber()))
-                                .setMaxLen(0xffff)
-                                .build();
 
-                actionList.add(actionOutput);
+                //AggFlow: Assign a new match and new actions according to new address assigning method.
+                if(OVXmodeHandler.getOVXmode() ==2) {
+                    fm.modifyMatch(OVXMessageUtil.updateMatch(fm.getFlowMod().getMatch(), fm.getFlowMod().getMatch()
+                            .createBuilder()
+                            .setExact(MatchField.ETH_SRC, MacAddress.of(this.tenantId))
+                            .setExact(MatchField.ETH_DST, MacAddress.of(outPort.getParentSwitch().getSwitchId()))
+                            .build()));
+
+                    OFActionSetField actionOutput =
+                            OFFactories.getFactory(fm.getOFMessage().getVersion())
+                                    .actions().buildSetField()
+                                    .setField(OFFactories.getFactory(fm.getOFMessage().getVersion()).oxms().ethSrc(MacAddress.of((this.tenantId))))
+                                    .build();
+
+                    actionList.add(actionOutput);
+
+                    actionOutput =
+                            OFFactories.getFactory(fm.getOFMessage().getVersion()).actions().buildSetField()
+                                    .setField(OFFactories.getFactory(fm.getOFMessage().getVersion()).oxms().ethDst(MacAddress.of(outPort.getLink().getOutLink().getDstSwitch().getSwitchId())))
+                                    .build();
+
+                    actionList.add(actionOutput);
+
+
+                    actionOutput = (OFActionSetField)
+                            OFFactories.getFactory(fm.getOFMessage().getVersion())
+                                    .actions().buildOutput()
+                                    .setPort(OFPort.of(outPort.getPortNumber()))
+                                    .setMaxLen(0xffff)
+                                    .build();
+
+
+                    actionList.add(actionOutput);
+                } else {
+                    //Original
+                    OFActionSetField actionOutput = (OFActionSetField)
+                            OFFactories.getFactory(fm.getOFMessage().getVersion())
+                                    .actions().buildOutput()
+                                    .setPort(OFPort.of(outPort.getPortNumber()))
+                                    .setMaxLen(0xffff)
+                                    .build();
+                    actionList.add(actionOutput);
+                }
 
                 fm.setOFMessage(fm.getFlowMod().createBuilder()
                         .setActions(actionList)
                         .build()
                 );
 
+                //AggFlow: Check if the rule is already installed.
+                if(OVXmodeHandler.getOVXmode()==2) {
+                boolean duflag = phyLink.getSrcPort().getParentSwitch().getEntrytable().checkduplicate(fm);
+                if(!duflag){
+                    phyLink.getSrcPort().getParentSwitch()
+                            .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
+                    this.log.debug(
+                            "Sending virtual link intermediate fm to sw {}: {}",
+                            phyLink.getSrcPort().getParentSwitch().getSwitchName(),
+                            fm);
+                }
+            } else {
                 phyLink.getSrcPort().getParentSwitch()
                         .sendMsg(fm, phyLink.getSrcPort().getParentSwitch());
                 this.log.debug(
                         "Sending virtual link intermediate fm to sw {}: {}",
                         phyLink.getSrcPort().getParentSwitch().getSwitchName(),
                         fm);
+                }
             }
             outPort = phyLink.getDstPort();
         }

@@ -1,3 +1,25 @@
+/*
+ *
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
+ *
+ */
+
 /*******************************************************************************
  * Libera HyperVisor development based OpenVirteX for SDN 2.0
  *
@@ -15,6 +37,7 @@ import net.onrc.openvirtex.elements.datapath.Switch;
 import net.onrc.openvirtex.elements.link.PhysicalLink;
 import net.onrc.openvirtex.elements.port.PhysicalPort;
 import net.onrc.openvirtex.exceptions.IndexOutOfBoundException;
+import net.onrc.openvirtex.messages.OVXFlowMod;
 import net.onrc.openvirtex.messages.OVXMessage;
 import net.onrc.openvirtex.routing.ShortestPath;
 import net.onrc.openvirtex.services.forwarding.mpls.MplsLabel;
@@ -459,7 +482,7 @@ public class PhysicalPath extends Path {
 
                         newpPath.setDstSwitch(node);
                     }else{
-                        //중간 노드들은 SrcSwitch나 DstSwitch 둘중 하나의 Original FlowMod와 Modified FlowMod 메시지로 채운다
+                        //?? ???? SrcSwitch? DstSwitch ?? ??? Original FlowMod? Modified FlowMod ???? ???
                         node.setOriFlowMod(this.getDstSwitch().getOriFlowMod());
                         node.setmFlowMod(this.getDstSwitch().getmFlowMod());
 
@@ -471,6 +494,8 @@ public class PhysicalPath extends Path {
 
         return newpPath;
     }
+
+
 
 
     public void sendSouth() {
@@ -516,20 +541,27 @@ public class PhysicalPath extends Path {
     }
 
     public void addPathIDtoPhysicalSwitch() {
-        if(this.getSrcSwitch() != null) {
-            ((PhysicalSwitch)this.getSrcSwitch().getSwitch()).addPathID(this.getPathID());
+        if (this.getSrcSwitch() != null) {
+            ((PhysicalSwitch) this.getSrcSwitch().getSwitch()).addPathID(this.getPathID());
         }
 
-        if(this.getDstSwitch() != null) {
-            ((PhysicalSwitch)this.getDstSwitch().getSwitch()).addPathID(this.getPathID());
+        if (this.getDstSwitch() != null) {
+            ((PhysicalSwitch) this.getDstSwitch().getSwitch()).addPathID(this.getPathID());
         }
 
-        if(this.getIntermediate() != null) {
-            for (Node node : this.getIntermediate()) {
-                ((PhysicalSwitch) node.getSwitch()).addPathID(this.getPathID());
+        if (this.getIntermediate() != null) {
+            synchronized (this.getIntermediate()) {
+                Iterator i = this.getIntermediate().iterator();
+                    for (Node node : this.getIntermediate()) {
+                        while (i.hasNext()) {
+                            i.next();
+                        ((PhysicalSwitch) node.getSwitch()).addPathID(this.getPathID());
+                    }
+                }
             }
         }
     }
+
 
 
     public boolean isUsingFailedLink(PhysicalLink pLink) {

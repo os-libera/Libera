@@ -1,27 +1,24 @@
-/*******************************************************************************
- * Copyright 2014 Open Networking Laboratory
+/*
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  ******************************************************************************
+ *   Copyright 2019 Korea University & Open Networking Foundation
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *   ******************************************************************************
+ *   Developed by Libera team, Operating Systems Lab of Korea University
+ *   ******************************************************************************
  *
- * ****************************************************************************
- * Libera HyperVisor development based OpenVirteX for SDN 2.0
- *
- *   OpenFlow Version Up with OpenFlowj
- *
- * This is updated by Libera Project team in Korea University
- *
- * Author: Seong-Mun Kim (bebecry@gmail.com)
- ******************************************************************************/
+ */
 package net.onrc.openvirtex.messages.statistics;
 
 import net.onrc.openvirtex.elements.datapath.PhysicalSwitch;
@@ -39,7 +36,7 @@ import org.projectfloodlight.openflow.protocol.*;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.U32;
 import org.projectfloodlight.openflow.types.U64;
-
+import net.onrc.openvirtex.elements.OVXmodes.OVXmodeHandler;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,128 +74,143 @@ public class OVXFlowStatsReply extends OVXStatistics implements VirtualizableSta
 
     @Override
     public void virtualizeStatistic(final PhysicalSwitch sw, final OVXStatisticsReply msg) {
-
+        this.log.debug("virtualizeStatistic");
+        this.log.debug(msg.getOFMessage().toString());
         if (msg.getOFMessage().getXid() != 0) {
             sw.removeFlowMods(msg);
             return;
         }
 
-        //this.log.info("virtualizeStatistic {}", msg.getOFMessage().toString());
+        //this.log.info("[{}] virtualizeStatistic Before {}", System.currentTimeMillis(), msg.getOFMessage().toString());
 
 
         HashMap<Integer, List<OFFlowStatsEntry>> stats = new HashMap<Integer, List<OFFlowStatsEntry>>();
 
         OFFlowStatsReply ofFlowStatsReply = (OFFlowStatsReply)msg.getOFMessage();
 
-        for (OFFlowStatsEntry stat : ofFlowStatsReply.getEntries()) {
-            if(!stat.getCookie().equals(U64.of(0))) {                       //except default flowentries
-                int tid = getTidFromCookie(stat.getCookie().getValue());
-                //addToStats(tid, stat, stats);
 
-                if(stat.getMatch().get(MatchField.ETH_SRC) != null && stat.getMatch().get(MatchField.ETH_DST) != null) {    //for edge switches
-                    //int tid = getTidFromCookie(stat.getCookie().getValue());
-                    log.debug("For MAC TID [{}] {}/{}", tid,
-                            stat.getMatch().get(MatchField.ETH_SRC).toString(),
-                            stat.getMatch().get(MatchField.ETH_DST).toString()
-                    );
-                    //addToStats(tid, stat, stats);
+        if(OVXmodeHandler.getOVXmode() == 1) {
 
-                    Integer pathID = MplsForwarding.getInstance().getPathIDFromMatch(stat.getMatch(), sw, tid);
+            for (OFFlowStatsEntry stat : ofFlowStatsReply.getEntries()) {
+                try {
+                    if (!stat.getCookie().equals(U64.of(0))) {                       //except default flowentries
+                        int tid = getTidFromCookie(stat.getCookie().getValue());
+                        //addToStats(tid, stat, stats);
 
-                    if(pathID != null) {
-                        VirtualPath vPath = VirtualPathBuilder.getInstance().getVirtualPath(pathID);
-                        PhysicalPath pPath = vPath.getPhysicalPath();
-                        Node node = pPath.getCorrespondingNode(sw);
-
-                        if (node != null) {
-                            log.debug("PhysicalSwitch is exist {} in pPath", node.toString());
-                            node.setFlowStatsEntry(stat);
+                        if (stat.getMatch().get(MatchField.ETH_SRC) != null && stat.getMatch().get(MatchField.ETH_DST) != null) {    //for edge switches
+                            //int tid = getTidFromCookie(stat.getCookie().getValue());
+                            log.debug("For MAC TID [{}] {}/{}", tid,
+                                    stat.getMatch().get(MatchField.ETH_SRC).toString(),
+                                    stat.getMatch().get(MatchField.ETH_DST).toString()
+                            );
                             //addToStats(tid, stat, stats);
-                        } else {
-                            // pPath에 없고 mPath에 있을 경우
-                            if (vPath.isMigrated()) {
-                                node = vPath.getMigratedPhysicalPath().getCorrespondingNode(sw);
+
+                            Integer pathID = MplsForwarding.getInstance().getPathIDFromMatch(stat.getMatch(), sw, tid);
+
+                            if (pathID != null) {
+                                VirtualPath vPath = VirtualPathBuilder.getInstance().getVirtualPath(pathID);
+                                PhysicalPath pPath = vPath.getPhysicalPath();
+                                Node node = pPath.getCorrespondingNode(sw);
 
                                 if (node != null) {
-                                    log.debug("PhysicalSwitch is exist {} in mPath", node.toString());
+                                    log.debug("PhysicalSwitch is exist {} in pPath", node.toString());
                                     node.setFlowStatsEntry(stat);
                                     //addToStats(tid, stat, stats);
+                                } else {
+                                    // pPath? ?? mPath? ?? ??
+                                    if (vPath.isMigrated()) {
+                                        node = vPath.getMigratedPhysicalPath().getCorrespondingNode(sw);
+
+                                        if (node != null) {
+                                            log.debug("PhysicalSwitch is exist {} in mPath", node.toString());
+                                            node.setFlowStatsEntry(stat);
+                                            //addToStats(tid, stat, stats);
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                }else if(stat.getMatch().get(MatchField.MPLS_LABEL) != null) {    //for intermediate switches
-                    //this.log.info("MPLS_LABEL " + match.get(MatchField.MPLS_LABEL).toString());
-                    MplsLabel label = MplsForwarding.getInstance().getMplsLabel(stat.getMatch().get(MatchField.MPLS_LABEL).getRaw());
+                        } else if (stat.getMatch().get(MatchField.MPLS_LABEL) != null) {    //for intermediate switches
+                            //this.log.info("MPLS_LABEL " + match.get(MatchField.MPLS_LABEL).toString());
+                            MplsLabel label = MplsForwarding.getInstance().getMplsLabel(stat.getMatch().get(MatchField.MPLS_LABEL).getRaw());
 
-                    if(label != null) {
-                        //int tid = label.getTenantID();
-                        log.debug("For MPLS TID [{}] {}", tid, U32.of(label.getLabelValue()).toString());
+                            if (label != null) {
+                                //int tid = label.getTenantID();
+                                log.debug("For MPLS TID [{}] {}", tid, U32.of(label.getLabelValue()).toString());
 
-                        VirtualPath vPath;
-                        PhysicalPath pPath;
-                        Node node;
+                                VirtualPath vPath;
+                                PhysicalPath pPath;
+                                Node node;
 
-                        OFFlowStatsEntry relatedEntry;
-                        OFFlowStatsEntry temp;
+                                OFFlowStatsEntry relatedEntry;
+                                OFFlowStatsEntry temp;
 
-                        LinkedList<Integer> pathIDs = new LinkedList<>();
-                        pathIDs.addAll(label.getPathIDs());
-                        pathIDs.add(label.getOriginalPathID());
+                                LinkedList<Integer> pathIDs = new LinkedList<>();
+                                pathIDs.addAll(label.getPathIDs());
+                                pathIDs.add(label.getOriginalPathID());
 
-                        for(Integer pathID : pathIDs) {
-                            vPath = VirtualPathBuilder.getInstance().getVirtualPath(pathID);
-                            pPath = vPath.getPhysicalPath();
-                            node = pPath.getCorrespondingNode(sw);
-
-                            if(node != null) {
-                                log.debug("PhysicalSwitch is exist {} in pPath", node.toString());
-
-                                relatedEntry = getRelatedEntry(tid, pPath);
-
-                                if (relatedEntry == null) {
-                                    log.debug("1. OFFlowStatsEntry is created");
-                                    temp = makeFlowStatsEntry(stat, node.getmFlowMod());
-
-                                }else{
-                                    log.debug("2. OFFlowStatsEntry is created");
-                                    temp = relatedEntry.createBuilder()
-                                            .setCookie(node.getmFlowMod().getCookie())
-                                            .build();
-                                }
-
-                                node.setFlowStatsEntry(temp);
-                                //addToStats(tid, temp, stats);
-                            }else{
-                                if(vPath.isMigrated()) {
-                                    node = vPath.getMigratedPhysicalPath().getCorrespondingNode(sw);
+                                for (Integer pathID : pathIDs) {
+                                    vPath = VirtualPathBuilder.getInstance().getVirtualPath(pathID);
+                                    pPath = vPath.getPhysicalPath();
+                                    node = pPath.getCorrespondingNode(sw);
 
                                     if (node != null) {
-                                        log.debug("PhysicalSwitch is exist {} in mPath", node.toString());
+                                        log.debug("PhysicalSwitch is exist {} in pPath", node.toString());
+
                                         relatedEntry = getRelatedEntry(tid, pPath);
 
                                         if (relatedEntry == null) {
-                                            log.debug("3. OFFlowStatsEntry is created");
+                                            log.debug("1. OFFlowStatsEntry is created");
                                             temp = makeFlowStatsEntry(stat, node.getmFlowMod());
 
-                                        }else{
-                                            log.debug("4. OFFlowStatsEntry is created");
+                                        } else {
+                                            log.debug("2. OFFlowStatsEntry is created");
                                             temp = relatedEntry.createBuilder()
                                                     .setCookie(node.getmFlowMod().getCookie())
                                                     .build();
                                         }
+
                                         node.setFlowStatsEntry(temp);
                                         //addToStats(tid, temp, stats);
+                                    } else {
+                                        if (vPath.isMigrated()) {
+                                            node = vPath.getMigratedPhysicalPath().getCorrespondingNode(sw);
+
+                                            if (node != null) {
+                                                log.debug("PhysicalSwitch is exist {} in mPath", node.toString());
+                                                relatedEntry = getRelatedEntry(tid, pPath);
+
+                                                if (relatedEntry == null) {
+                                                    log.debug("3. OFFlowStatsEntry is created");
+                                                    temp = makeFlowStatsEntry(stat, node.getmFlowMod());
+
+                                                } else {
+                                                    log.debug("4. OFFlowStatsEntry is created");
+                                                    temp = relatedEntry.createBuilder()
+                                                            .setCookie(node.getmFlowMod().getCookie())
+                                                            .build();
+                                                }
+                                                node.setFlowStatsEntry(temp);
+                                                //addToStats(tid, temp, stats);
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+                        //this.log.info("[{}] virtualizeStatistic After {}", System.currentTimeMillis(), msg.getOFMessage().toString());
+                        //addToStats(tid, stat, stats);
                     }
+                } catch (NullPointerException e) {
+                    log.info("null value caught");
                 }
-                //addToStats(tid, stat, stats);
+            }
+        }else {
+            for (OFFlowStatsEntry stat : ofFlowStatsReply.getEntries()) {
+                int tid = getTidFromCookie(stat.getCookie().getValue());
+                addToStats(tid, stat, stats);
+                sw.setFlowStatistics(stats);
             }
         }
-        //sw.setFlowStatistics(stats);
     }
 
     public OFFlowStatsEntry makeFlowStatsEntry(OFFlowStatsEntry oriEntry, OFFlowMod flowMod) {
