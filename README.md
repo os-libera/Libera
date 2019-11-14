@@ -1,4 +1,4 @@
-# *Libera*: Network Hypervisor for Programmable Network Virtualization 
+# *Libera*: Network Hypervisor for Programmable Network Virtualization in Datacenters
 
 
 ## Introduction
@@ -40,9 +40,9 @@ We provide VM based tutorial that is easy to follow.
 	ping 10.0.0.3
 	```
 
-### Enjoy the multi-tenant SDN!
+### Enjoy the programmable virtual SDN!
 
-+ [OVX] Execute Libera framework
++ [Libera] Execute Libera framework
      
   ```shell
   cd /home/libera/Libera
@@ -83,7 +83,48 @@ We provide VM based tutorial that is easy to follow.
   ```
      - -t: the number of tenants
      - -i: IP address
+    
+    When the initiation is finished, you can check the ONOS GUI to check whether it works normally.
+     - URL: http://10.0.0.3:20000/onos/ui/ [Should access from ONOS VM].
+     - Account: ID - karaf, PW - karaf
+
+  <img src="https://openvirtex.com/wp-content/uploads/2019/11/3.jpg" width="50%" height="50%"> <img src="https://openvirtex.com/wp-content/uploads/2019/11/4.jpg" width="50%" height="50%"> 
+   
+
+
++ [Libera] Now, create the VN topology.
+
+  We put several commands in Libera to create the following VN topology.
+  <img src="https://openvirtex.com/wp-content/uploads/2014/04/vnet1.png" width="50%" height="50%">
+  
+  Each virtual switch, port, and link is created by single command. Fortunately, we provide a script for the above VN topology as follow. Enter the following command from a new shell.
+      
+  ```shell
+  cd /home/libera/Libera/utils
+  sh examplevn.sh
+  ```
+    
+  When the VN topology creation is finished, the topology appears in the ONOS VM!
+  
+  <img src="https://openvirtex.com/wp-content/uploads/2019/11/5.jpg" width="50%" height="50%">
+
+
+
++ [Mininet] VN is ready. Let's create network traffic.
+
+  Since our network topology allows network connections between H_SEA_1 and H_LAX_2, let's ping them. (Note that the following command is entered in the Mininet)
+    ```shell
+  h_SEA_1 ping -c10 h_LAX_2
+  ```
+  As the figure below, the packets normally goes. This is because the ONOS VN controller programmed network routing to its virtual switches, and it is appropriately installed in the physical network.
+  
+  <img src="https://openvirtex.com/wp-content/uploads/2019/11/5.jpg" width="50%" height="50%">
 
 ## Others
 We tested Libera framework only with Ubuntu 14.04 version. Also, the current Libera framework has been tested with ONOS. 
-Basic structure and APIs for this hypervisor is shared with OpenVirteX (can be seen in [here](www.openvirtex.com)).
+Basic structure and APIs for this hypervisor is shared with OpenVirteX (can be seen in [here](https://www.openvirtex.com)).
+
+## Contacts
++ This project is under the lead of Professor Chuck Yoo.
++ Contributor: Gyeongsik Yang, Bong-yeol Yu, Seongmun Kim, Heesang Jin, Minkoo Kang, Anumeha, Yeonho Yoo
++ Mailing list: [Here](https://groups.google.com/forum/#!forum/ovx-discuss) - We share mailing list with OpenVirteX
