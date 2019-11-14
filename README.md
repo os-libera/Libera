@@ -88,7 +88,7 @@ We provide VM based tutorial that is easy to follow.
      - URL: http://10.0.0.3:20000/onos/ui/ [Should access from ONOS VM].
      - Account: ID - karaf, PW - karaf
 
-  <img src="https://openvirtex.com/wp-content/uploads/2019/11/3.jpg" width="50%" height="50%"> <img src="https://openvirtex.com/wp-content/uploads/2019/11/4.jpg" width="50%" height="50%"> 
+  <img src="https://openvirtex.com/wp-content/uploads/2019/11/3.jpg" width="40%" height="40%"> <img src="https://openvirtex.com/wp-content/uploads/2019/11/4.jpg" width="40%" height="40%"> 
    
 
 
