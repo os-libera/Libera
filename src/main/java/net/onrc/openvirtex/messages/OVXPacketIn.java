@@ -178,7 +178,7 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
                 //log.info(match.toString());
                 return;
             }
-            this.log.info("virtualize");
+//            this.log.info("virtualize");
         }
 
         this.log.debug("Match " + match.toString());
@@ -215,15 +215,15 @@ public class OVXPacketIn extends OVXMessage implements Virtualizable {
         if (OVXmodeHandler.getOVXmode() == 1) {
             if (!this.port.isEdge()) {
                 if (match.get(MatchField.ETH_TYPE) == EthType.IPv4 && match.get(MatchField.ETH_DST) != MacAddress.of("ff:ff:ff:ff:ff:ff")) {
-                    log.info("this port is not edge");
-                    log.info(match.toString());
+//                    log.info("this port is not edge");
+//                    log.info(match.toString());
                 }
             }
         }
 
         if (OVXmodeHandler.getOVXmode() == 0) {
-            log.info("for core packets in OVX default mode");
-            log.info("match info for core switches in OVX default mode = {}", match.toString());
+//            log.info("for core packets in OVX default mode");
+//            log.info("match info for core switches in OVX default mode = {}", match.toString());
             if (match.get(MatchField.ETH_TYPE) == EthType.IPv4
                     || match.get(MatchField.ETH_TYPE) == EthType.ARP) {
 
