@@ -14,11 +14,11 @@ It is welcomed to reference the following papers for *Libera* framework.
 ## Libera workflow
 ### Initialization
 The following figure shows the initialization of Libera and creation of VN.
-<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow1.jpg" width="50%" height="50%">
+<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow1.jpg" height="50%">
 
 ### VN programming
 Also, the figure below shows the basic network program sequence between physical network, Libera, and VN controller.
-<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2-1024x401.jpg" width="50%" height="50%">
+<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2-1024x401.jpg" height="50%">
 
 
 ## Tutorial
