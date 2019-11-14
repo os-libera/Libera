@@ -6,21 +6,16 @@ This documentation includes the step-by-step instructions to run and test *Liber
 
 *Libera* is SDN-based network hypervisor that creates multiple virtual networks for tenants. This software is developed based on OpenVirteX, which is originally developed by ONF (Open Networking Foundation). Now, OpenVirteX and *Libera* are both managed by Korea University.
 
-### References
-
-It is welcomed to reference the following papers for *Libera* framework.
-+ TBD
 
 ## Libera workflow
+
 ### Initialization
 The following figure shows the initialization of Libera and creation of VN.
-<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow1.jpg" width="70%" height="70%">
-
+<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow1.jpg" width="80%" height="80%">
 
 ### VN programming
 Also, the figure below shows the basic network program sequence between physical network, Libera, and VN controller.
-<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2.jpg" width="50%" height="50%">
-
+<img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2.jpg" width="60%" height="60%">
 
 ## Tutorial
 We provide VM based tutorial that is easy to follow.
@@ -75,10 +70,6 @@ We provide VM based tutorial that is easy to follow.
 
   Wait for a moment until all the network is discovered.
   
-
-
-
-
 + [ONOS] Run the ONOS controller to be used as VN controller
 
   For the tenant to directly program its VN, we use ONOS, which is widely-used. The ONOS VM provides the script to build multiple ONOS controllers for multi-tenant evaluations.
@@ -124,6 +115,11 @@ We provide VM based tutorial that is easy to follow.
   As the figure below, the packets normally goes. This is because the ONOS VN controller programmed network routing to its virtual switches, and it is appropriately installed in the physical network.
   
   <img src="https://openvirtex.com/wp-content/uploads/2019/11/5.jpg" width="50%" height="50%">
+
+
+## References
+It is welcomed to reference the following papers for *Libera* framework.
++ TBD
 
 ## Others
 We tested Libera framework only with Ubuntu 14.04 version. Also, the current Libera framework has been tested with ONOS. 
