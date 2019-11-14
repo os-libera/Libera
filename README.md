@@ -114,7 +114,7 @@ We provide VM based tutorial that is easy to follow.
   ```
   As the figure below, the packets normally goes. This is because the ONOS VN controller programmed network routing to its virtual switches, and it is appropriately installed in the physical network.
   
-  <img src="https://openvirtex.com/wp-content/uploads/2019/11/5.jpg" width="50%" height="50%">
+  <img src="https://openvirtex.com/wp-content/uploads/2019/11/6.jpg" width="50%" height="50%">
 
 
 ## References
