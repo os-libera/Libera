@@ -68,13 +68,13 @@ public class StatisticsManager implements TimerTask, OVXSendMsg {
 
     @Override
     public void run(Timeout timeout) throws Exception {
-        log.info("Collecting stats for {}", this.sw.getSwitchName());
+//        log.info("Collecting stats for {}", this.sw.getSwitchName());
         sendPortStatistics();
         sendFlowStatistics(0, (short) 0);
 
         if (!this.stopTimer) {
-            log.info("Scheduling stats collection in {} seconds for {}",
-                    this.refreshInterval, this.sw.getSwitchName());
+//            log.info("Scheduling stats collection in {} seconds for {}",
+//                    this.refreshInterval, this.sw.getSwitchName());
             timeout.getTimer().newTimeout(this, refreshInterval,
                     TimeUnit.SECONDS);
         }
@@ -113,14 +113,14 @@ public class StatisticsManager implements TimerTask, OVXSendMsg {
         /*
          * Initially start polling quickly. Then drop down to configured value
          */
-        log.info("Starting Stats collection thread for {}",
-                this.sw.getSwitchName());
+//        log.info("Starting Stats collection thread for {}",
+//                this.sw.getSwitchName());
         timer.newTimeout(this, 1, TimeUnit.SECONDS);
     }
 
     public void stop() {
-        log.info("Stopping Stats collection thread for {}",
-                this.sw.getSwitchName());
+//        log.info("Stopping Stats collection thread for {}",
+//                this.sw.getSwitchName());
         this.stopTimer = true;
     }
 
