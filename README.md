@@ -1,12 +1,20 @@
 # *Libera*: Network Hypervisor for Programmable Network Virtualization in Datacenters
 
+## Contents
++ [Introduction](#introduction)
++ [*Libera* workflow](#workflow)
++ [Tutorial](#tutorial)
++ [References](#reference)
++ [Others](#others)
++ [Contacts](#contacts)
 
+<a name="introduction"></a>
 ## Introduction
 This documentation includes the step-by-step instructions to run and test *Libera* framework.
 
 *Libera* is SDN-based network hypervisor that creates multiple virtual networks (VNs) for tenants. This software is developed based on OpenVirteX, which is originally developed by ONF (Open Networking Foundation). Now, OpenVirteX and *Libera* are both managed by Korea University.
 
-
+<a name="workflow"></a>
 ## *Libera* workflow
 
 ### Initialization
@@ -17,6 +25,7 @@ The following figure shows the initialization of *Libera* and creation of VN.
 Also, the figure below shows the basic network program sequence between physical network, Libera, and VN controller.
 <img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2.jpg" width="60%" height="60%">
 
+<a name="tutorial"></a>
 ## Tutorial
 We provide a VM-based tutorial that is easy to follow.
 
@@ -116,16 +125,18 @@ We provide a VM-based tutorial that is easy to follow.
   
   <img src="https://openvirtex.com/wp-content/uploads/2019/11/6.jpg" width="50%" height="50%">
 
-
+<a name="reference"></a>
 ## References
 It is welcomed to reference the following papers for *Libera* framework.
 + TBD
 
+<a name="others"></a>
 ## Others
 We tested *Libera* framework only with Ubuntu 14.04 version. Also, the current *Libera* framework has been tested with ONOS. 
 Basic structure and APIs for this hypervisor is shared with OpenVirteX (as shown [here](https://www.openvirtex.com)).
 
+<a name="contacts"></a>
 ## Contacts
 + This project is under the lead of Professor Chuck Yoo.
-+ Contributors: Gyeongsik Yang, Bong-yeol Yu, Seongmun Kim, Heesang Jin, Minkoo Kang, Anumeha, Yeonho Yoo
++ Contributors: Gyeongsik Yang, Bong-yeol Yu, Seong-Mun Kim, Heesang Jin, Wontae Jeong, Minkoo Kang, Anumeha, Yeonho Yoo
 + Mailing list: [Here](https://groups.google.com/forum/#!forum/ovx-discuss) - We share mailing list with OpenVirteX
