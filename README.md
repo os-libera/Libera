@@ -4,7 +4,7 @@
 ## Introduction
 This documentation includes the step-by-step instructions to run and test *Libera* framework.
 
-*Libera* is SDN-based network hypervisor that creates multiple virtual networks for tenants. This software is developed based on OpenVirteX, which is originally developed by ONF (Open Networking Foundation). Now, OpenVirteX and *Libera* are both managed by Korea University.
+*Libera* is SDN-based network hypervisor that creates multiple virtual networks (VNs) for tenants. This software is developed based on OpenVirteX, which is originally developed by ONF (Open Networking Foundation). Now, OpenVirteX and *Libera* are both managed by Korea University.
 
 
 ## Libera workflow
@@ -18,11 +18,11 @@ Also, the figure below shows the basic network program sequence between physical
 <img src="https://openvirtex.com/wp-content/uploads/2019/11/flow2.jpg" width="60%" height="60%">
 
 ## Tutorial
-We provide VM based tutorial that is easy to follow.
+We provide a VM-based tutorial that is easy to follow.
 
 ### Preparation
 + Install virtualbox software: [https://www.virtualbox.org/](https://www.virtualbox.org/)
-+ Get the virtual machines we prepared
++ Get the virtual machines we have prepared
   + Note that the password for the account is *kuoslab12*
   	+ ["Mininet"](http://ovx.wpengine.com/wp-content/uploads/Mininet.ova) VM for emulating physical network
   	+ ["Libera"](http://ovx.wpengine.com/wp-content/uploads/Libera.ova) VM for running Libera framework
@@ -49,7 +49,7 @@ We provide VM based tutorial that is easy to follow.
   sh scripts/libera.sh –-db-clear	
   ```
 
-  When Libera is ready to accept connections from physical network, it pauses the logging as the following image.
+  When Libera is ready to accept connections from physical network, it pauses logging as shown in the following image:
   
   ![](https://openvirtex.com/wp-content/uploads/2019/11/1.jpg)
 
@@ -58,17 +58,17 @@ We provide VM based tutorial that is easy to follow.
 
 + [Mininet] Physical network creation
 
-  We create a physical topology as the figure below. Use the python file that automates the creation of the topology!
+  We create a physical topology as shown in the figure below. Use the python file that automates the creation of the topology!
   ```shell
   sudo python internet2_OF13.py
   ```
   
   <img src="https://openvirtex.com/wp-content/uploads/2014/04/topo.png" width="50%" height="50%">
 
-  When the physical network is initiated, the logs for physical topology discovery appears in [Libera] as follows. 
+  When the physical network is initiated, the logs for physical topology discovery appears in [Libera] as follows:
     ![](https://openvirtex.com/wp-content/uploads/2019/11/2.jpg)
 
-  Wait for a moment until all the network is discovered.
+  Wait for a moment until the entire network is discovered.
   
 + [ONOS] Run the ONOS controller to be used as VN controller
 
@@ -90,7 +90,7 @@ We provide VM based tutorial that is easy to follow.
 
 + [Libera] Now, create the VN topology.
 
-  We put several commands in Libera to create the following VN topology.
+  We input several commands in Libera to create the following VN topology:
   <img src="https://openvirtex.com/wp-content/uploads/2014/04/vnet1.png" width="50%" height="50%">
   
   Each virtual switch, port, and link is created by single command. Fortunately, we provide a script for the above VN topology as follow. Enter the following command from a new shell.
@@ -112,7 +112,7 @@ We provide VM based tutorial that is easy to follow.
     ```shell
   h_SEA_1 ping -c10 h_LAX_2
   ```
-  As the figure below, the packets normally goes. This is because the ONOS VN controller programmed network routing to its virtual switches, and it is appropriately installed in the physical network.
+  As shown in the figure below, the packets normally goes. This is because the ONOS VN controller programmed network routing to its virtual switches, and it is appropriately installed in the physical network.
   
   <img src="https://openvirtex.com/wp-content/uploads/2019/11/6.jpg" width="50%" height="50%">
 
@@ -123,9 +123,9 @@ It is welcomed to reference the following papers for *Libera* framework.
 
 ## Others
 We tested Libera framework only with Ubuntu 14.04 version. Also, the current Libera framework has been tested with ONOS. 
-Basic structure and APIs for this hypervisor is shared with OpenVirteX (can be seen in [here](https://www.openvirtex.com)).
+Basic structure and APIs for this hypervisor is shared with OpenVirteX (as shown [here](https://www.openvirtex.com)).
 
 ## Contacts
 + This project is under the lead of Professor Chuck Yoo.
-+ Contributor: Gyeongsik Yang, Bong-yeol Yu, Seongmun Kim, Heesang Jin, Minkoo Kang, Anumeha, Yeonho Yoo
++ Contributors: Gyeongsik Yang, Bong-yeol Yu, Seongmun Kim, Heesang Jin, Minkoo Kang, Anumeha, Yeonho Yoo
 + Mailing list: [Here](https://groups.google.com/forum/#!forum/ovx-discuss) - We share mailing list with OpenVirteX
