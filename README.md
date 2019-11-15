@@ -7,10 +7,10 @@ This documentation includes the step-by-step instructions to run and test *Liber
 *Libera* is SDN-based network hypervisor that creates multiple virtual networks (VNs) for tenants. This software is developed based on OpenVirteX, which is originally developed by ONF (Open Networking Foundation). Now, OpenVirteX and *Libera* are both managed by Korea University.
 
 
-## Libera workflow
+## *Libera* workflow
 
 ### Initialization
-The following figure shows the initialization of Libera and creation of VN.
+The following figure shows the initialization of *Libera* and creation of VN.
 <img src="https://openvirtex.com/wp-content/uploads/2019/11/flow1.jpg" width="80%" height="80%">
 
 ### VN programming
@@ -25,12 +25,12 @@ We provide a VM-based tutorial that is easy to follow.
 + Get the virtual machines we have prepared
   + Note that the password for the account is *kuoslab12*
   	+ ["Mininet"](http://ovx.wpengine.com/wp-content/uploads/Mininet.ova) VM for emulating physical network
-  	+ ["Libera"](http://ovx.wpengine.com/wp-content/uploads/Libera.ova) VM for running Libera framework
+  	+ ["Libera"](http://ovx.wpengine.com/wp-content/uploads/Libera.ova) VM for running *Libera* framework
 	+ ["ONOS"](http://ovx.wpengine.com/wp-content/uploads/ONOS.ova) for running ONOS controller as VN controller
 + Open the provided VMs through virtual box (see [here](https://www.virtualbox.org/manual/UserManual.html#ovf) for the steps)
 + Check whether the network connections work between VMs through *ping*.
   + Mininet: 10.0.0.1 / Libera: 10.0.0.2 / ONOS: 10.0.0.3
-  + [Mininet] Ping to Libera or ONOS
+  + [Mininet] Ping to *Libera* or ONOS
 	```shell
 	ping 10.0.0.2
 	ping 10.0.0.3
@@ -42,14 +42,14 @@ We provide a VM-based tutorial that is easy to follow.
 
 ### Enjoy the programmable virtual SDN!
 
-+ [Libera] Execute Libera framework
++ [Libera] Execute *Libera* framework
      
   ```shell
   cd /home/libera/Libera
   sh scripts/libera.sh –-db-clear	
   ```
 
-  When Libera is ready to accept connections from physical network, it pauses logging as shown in the following image:
+  When *Libera* is ready to accept connections from physical network, it pauses logging as shown in the following image:
   
   ![](https://openvirtex.com/wp-content/uploads/2019/11/1.jpg)
 
@@ -90,7 +90,7 @@ We provide a VM-based tutorial that is easy to follow.
 
 + [Libera] Now, create the VN topology.
 
-  We input several commands in Libera to create the following VN topology:
+  We input several commands in *Libera* to create the following VN topology:
   <img src="https://openvirtex.com/wp-content/uploads/2014/04/vnet1.png" width="50%" height="50%">
   
   Each virtual switch, port, and link is created by single command. Fortunately, we provide a script for the above VN topology as follow. Enter the following command from a new shell.
@@ -122,7 +122,7 @@ It is welcomed to reference the following papers for *Libera* framework.
 + TBD
 
 ## Others
-We tested Libera framework only with Ubuntu 14.04 version. Also, the current Libera framework has been tested with ONOS. 
+We tested *Libera* framework only with Ubuntu 14.04 version. Also, the current *Libera* framework has been tested with ONOS. 
 Basic structure and APIs for this hypervisor is shared with OpenVirteX (as shown [here](https://www.openvirtex.com)).
 
 ## Contacts
