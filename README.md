@@ -31,11 +31,11 @@ We provide a VM-based tutorial that is easy to follow.
 
 ### Preparation
 + Install virtualbox software: [https://www.virtualbox.org/](https://www.virtualbox.org/)
-+ Get the virtual machines we have prepared
++ Get the virtual machines we have prepared - [Here!](https://drive.google.com/drive/folders/12JCu5ltiH0ITGq_nP-zRaOQT-05uEQ8i?usp=sharing)
   + Note that the password for the account is *kuoslab12*
-  	+ ["Mininet"](http://ovx.wpengine.com/wp-content/uploads/Mininet.ova) VM for emulating physical network
-  	+ ["Libera"](http://ovx.wpengine.com/wp-content/uploads/Libera.ova) VM for running *Libera* framework
-	+ ["ONOS"](http://ovx.wpengine.com/wp-content/uploads/ONOS.ova) for running ONOS controller as VN controller
+  	+ "Mininet" VM for emulating physical network
+  	+ "Libera" VM for running *Libera* framework
+	+ "ONOS" for running ONOS controller as VN controller
 + Open the provided VMs through virtual box (see [here](https://www.virtualbox.org/manual/UserManual.html#ovf) for the steps)
 + Check whether the network connections work between VMs through *ping*.
   + Mininet: 10.0.0.1 / Libera: 10.0.0.2 / ONOS: 10.0.0.3
