@@ -51,20 +51,6 @@ We provide a VM-based tutorial that is easy to follow.
 
 ### Enjoy the programmable virtual SDN!
 
-+ [Libera] Execute *Libera* framework
-     
-  ```shell
-  cd /home/libera/Libera
-  sh scripts/libera.sh –-db-clear	
-  ```
-
-  When *Libera* is ready to accept connections from physical network, it pauses logging as shown in the following image:
-  
-  ![](https://openvirtex.com/wp-content/uploads/2019/11/1.jpg)
-
-  
-
-
 + [Mininet] Physical network creation
 
   We create a physical topology as shown in the figure below. Use the python file that automates the creation of the topology!
@@ -74,10 +60,27 @@ We provide a VM-based tutorial that is easy to follow.
   
   <img src="https://openvirtex.com/wp-content/uploads/2014/04/topo.png" width="50%" height="50%">
 
+    - If you create physical network repeatedly, put the following command to get rid of the created Mininet emulations.
+       ```shell
+       sudo mn -c
+       ```
+
+
++ [Libera] Execute *Libera* framework
+     
+  ```shell
+  cd /home/libera/Libera
+  sh scripts/libera.sh –-db-clear	
+  ```
+
+
   When the physical network is initiated, the logs for physical topology discovery appears in [Libera] as follows:
     ![](https://openvirtex.com/wp-content/uploads/2019/11/2.jpg)
 
   Wait for a moment until the entire network is discovered.
+
+  
+
   
 + [ONOS] Run the ONOS controller to be used as VN controller
 
