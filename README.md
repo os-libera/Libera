@@ -37,6 +37,8 @@ We provide a VM-based tutorial that is easy to follow.
   	+ "Libera" VM for running *Libera* framework
 	+ "ONOS" for running ONOS controller as VN controller
 + Open the provided VMs through virtual box (see [here](https://www.virtualbox.org/manual/UserManual.html#ovf) for the steps)
+
+  > Note that while opening the VMs, **you should check "MAC address policy" to include all adapters MAC addresses!** If you choose "Include only NAT network adapter MAC addresses", the pre-configured static IPs do not work!
 + Check whether the network connections work between VMs through *ping*.
   + Mininet: 10.0.0.1 / Libera: 10.0.0.2 / ONOS: 10.0.0.3
   + [Mininet] Ping to *Libera* or ONOS
