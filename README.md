@@ -4,6 +4,7 @@
 + [Introduction](#introduction)
 + [*Libera* workflow](#workflow)
 + [Tutorial](#tutorial)
++ [Source code installation](#install)
 + [References](#reference)
 + [Others](#others)
 + [Contacts](#contacts)
@@ -134,6 +135,7 @@ We provide a VM-based tutorial that is easy to follow.
 <a name="install"></a>
 ## Source code installation
 *Libera* is built based on OpenVirteX, so you can follow the installation guide of OpenVirteX [here](https://openvirtex.com/getting-started/installation/).
+
 When following the guide, please clone the repository of Libera, not the OpenVirteX. Also, run the VNC with ONOS, not the Floodlight.
 
 <a name="reference"></a>
