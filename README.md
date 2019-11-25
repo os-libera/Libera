@@ -130,6 +130,12 @@ We provide a VM-based tutorial that is easy to follow.
   
   <img src="https://openvirtex.com/wp-content/uploads/2019/11/6.jpg" width="50%" height="50%">
 
+
+<a name="install"></a>
+## Source code installation
+*Libera* is built based on OpenVirteX, so you can follow the installation guide of OpenVirteX [here](https://openvirtex.com/getting-started/installation/).
+When following the guide, please clone the repository of Libera, not the OpenVirteX. Also, run the VNC with ONOS, not the Floodlight.
+
 <a name="reference"></a>
 ## References
 It is welcomed to reference the following papers for *Libera* framework.
@@ -137,7 +143,7 @@ It is welcomed to reference the following papers for *Libera* framework.
 
 <a name="others"></a>
 ## Others
-We tested *Libera* framework only with Ubuntu 14.04 version. Also, the current *Libera* framework has been tested with ONOS. 
+We tested *Libera* framework only with Ubuntu 14.04 version. 
 Basic structure and APIs for this hypervisor is shared with OpenVirteX (as shown [here](https://www.openvirtex.com)).
 
 <a name="contacts"></a>
