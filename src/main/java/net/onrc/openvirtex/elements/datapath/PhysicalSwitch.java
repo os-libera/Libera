@@ -285,6 +285,18 @@ public class PhysicalSwitch extends Switch<PhysicalPort> {
                 .build();
         dFm = new OVXMessage(ofFlowAdd);
         this.sendMsg(dFm, this);
+        
+         ofFlowAdd = ofFactory.buildFlowAdd()
+                .setMatch(ofFactory.buildMatch()
+                        .setExact(MatchField.ETH_TYPE, EthType.ARP)
+                        .build())
+                .setActions(Collections.singletonList(output))
+                .setPriority(5)
+                .setFlags(flags)
+                .build();
+
+        dFm = new OVXMessage(ofFlowAdd);
+        this.sendMsg(dFm, this);
     }
 
     /**
