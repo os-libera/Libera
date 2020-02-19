@@ -176,7 +176,9 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
             );
         }
 
-        this.prependRewriteActions(sw);
+        //this.prependRewriteActions(sw);
+        if (OVXmodeHandler.getOVXmode() != 1)
+            this.prependRewriteActions(sw); 
 
         this.setOFMessage(this.getPacketOut().createBuilder()
                 .setActions(this.approvedActions)
@@ -203,7 +205,7 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
     }
 
     private void prependRewriteActionsVer13(final OVXSwitch sw) {
-        /*if(this.match.get(MatchField.IPV4_SRC) != null) {
+        if(this.match.get(MatchField.IPV4_SRC) != null) {
             OFActionSetField ofActionSetField = this.factory.actions().buildSetField()
                     .setField(this.factory.oxms().ipv4Src(
                             IPv4Address.of(
@@ -223,11 +225,11 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
                                             this.match.get(MatchField.IPV4_DST).getInt()))))
                     .build();
             this.approvedActions.add(0, ofActionSetField);
-        }*/
+        }
     }
 
     private void prependRewriteActionsVer10(final OVXSwitch sw) {
-        /*if(this.match.get(MatchField.IPV4_SRC) != null) {
+        if(this.match.get(MatchField.IPV4_SRC) != null) {
             OFActionSetNwSrc srcAct = this.factory.actions().buildSetNwSrc()
                     .setNwAddr(IPv4Address.of(IPMapper.getPhysicalIp(sw.getTenantId(),
                             this.match.get(MatchField.IPV4_SRC).getInt())))
@@ -241,7 +243,7 @@ public class OVXPacketOut extends OVXMessage implements Devirtualizable {
                             this.match.get(MatchField.IPV4_DST).getInt())))
                     .build();
             this.approvedActions.add(0, dstAct);
-        }*/
+        }
     }
 
     @Override
