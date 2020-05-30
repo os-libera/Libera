@@ -1,5 +1,10 @@
 # *Libera*: Network Hypervisor for Programmable Network Virtualization in Datacenters
 
+## Paper
+Please check the following paper to see more details of *Libera*.
+
++ [G. Yang, B. Yu, H. Jin and C. Yoo, "Libera for Programmable Network Virtualization," in IEEE Communications Magazine, April 2020.](https://ieeexplore.ieee.org/document/9071987)
+
 ## Contents
 + [Introduction](#introduction)
 + [*Libera* workflow](#workflow)
